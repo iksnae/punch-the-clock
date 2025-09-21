@@ -277,11 +277,11 @@ Tasks marked with [P] can be executed in parallel within their group.
 - `src/cli/utils/help.ts`
 
 **Acceptance Criteria:**
-- [ ] Commander.js integrated with TypeScript
-- [ ] Command structure defined
-- [ ] Help system working
-- [ ] Global options implemented
-- [ ] Error handling framework
+- [x] Commander.js integrated with TypeScript
+- [x] Command structure defined
+- [x] Help system working
+- [x] Global options implemented
+- [x] Error handling framework
 
 ---
 
