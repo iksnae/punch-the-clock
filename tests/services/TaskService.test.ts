@@ -29,6 +29,7 @@ describe('TaskService', () => {
   describe('createTask', () => {
     it('should create a new task successfully', async () => {
       const taskData = {
+        projectId: 1,
         number: 'TASK-1',
         title: 'Test Task',
         description: 'A test task',
@@ -62,6 +63,7 @@ describe('TaskService', () => {
 
     it('should create a task with minimal data', async () => {
       const taskData = {
+        projectId: 1,
         number: 'TASK-1',
         title: 'Test Task',
         state: 'pending' as const,
@@ -346,7 +348,7 @@ describe('TaskService', () => {
       const result = await taskService.generateTaskNumber(1);
 
       expect(result).toBe('TASK-1');
-      expect(mockTaskRepository.existsByNumber).toHaveBeenCalledWith(1, 'TASK-1');
+      expect(mockTaskRepository.existsByNumber).toHaveBeenCalledWith(1, 'TASK-1', undefined);
     });
   });
 });

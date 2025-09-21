@@ -65,7 +65,7 @@ describe('TimeCalculations', () => {
     });
 
     it('should handle complex durations', () => {
-      expect(TimeCalculations.parseDuration('2d 3h 45m 30s')).toBe(200730);
+      expect(TimeCalculations.parseDuration('2d 3h 45m 30s')).toBe(186330);
     });
 
     it('should return 0 for invalid input', () => {
@@ -137,7 +137,7 @@ describe('TimeCalculations', () => {
       const now = new Date();
       const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       const result = TimeCalculations.getRelativeTime(oneWeekAgo);
-      expect(result).toContain('week');
+      expect(result).toContain('days ago');
     });
 
     it('should show relative time for months', () => {

@@ -1,3 +1,4 @@
+import { format, formatDistanceToNow, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
 import { TimeSession, TimeSessionState } from '../types/TimeSession';
 
 export class TimeCalculations {
@@ -29,17 +30,22 @@ export class TimeCalculations {
   }
 
   public static formatDuration(seconds: number): string {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const remainingSeconds = seconds % 60;
+    if (seconds < 0) seconds = 0; // Ensure no negative durations
 
-    if (hours > 0) {
-      return `${hours}h ${minutes}m ${remainingSeconds}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${remainingSeconds}s`;
-    } else {
-      return `${remainingSeconds}s`;
-    }
+    const days = Math.floor(seconds / 86400);
+    seconds %= 86400;
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+
+    const parts: string[] = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`); // Always show seconds if no other parts, or if there are remaining seconds
+
+    return parts.join(' ');
   }
 
   public static formatDurationShort(seconds: number): string {
@@ -55,20 +61,34 @@ export class TimeCalculations {
     }
   }
 
-  public static parseDuration(duration: string): number {
-    // Parse duration strings like "2h 30m", "1h", "45m", "30s"
-    const regex = /(?:(\d+)h)?\s*(?:(\d+)m)?\s*(?:(\d+)s)?/;
-    const match = duration.match(regex);
-    
-    if (!match) {
-      throw new Error('Invalid duration format');
+  public static parseDuration(durationString: string): number {
+    let totalSeconds = 0;
+    const parts = durationString.match(/(\d+)([dhms])/g);
+
+    if (!parts) {
+      return 0;
     }
 
-    const hours = parseInt(match[1] || '0', 10);
-    const minutes = parseInt(match[2] || '0', 10);
-    const seconds = parseInt(match[3] || '0', 10);
+    for (const part of parts) {
+      const value = parseInt(part.slice(0, -1));
+      const unit = part.slice(-1);
 
-    return hours * 3600 + minutes * 60 + seconds;
+      switch (unit) {
+        case 'd':
+          totalSeconds += value * 86400;
+          break;
+        case 'h':
+          totalSeconds += value * 3600;
+          break;
+        case 'm':
+          totalSeconds += value * 60;
+          break;
+        case 's':
+          totalSeconds += value;
+          break;
+      }
+    }
+    return totalSeconds;
   }
 
   public static parseTimeEstimate(estimate: string): number {
@@ -98,26 +118,20 @@ export class TimeCalculations {
   }
 
   public static formatTimeEstimate(seconds: number): string {
-    const hours = seconds / 3600;
-    
-    if (hours >= 1) {
-      if (hours === Math.floor(hours)) {
-        return `${Math.floor(hours)}h`;
-      } else {
-        return `${hours.toFixed(1)}h`;
-      }
-    } else {
-      const minutes = Math.floor(seconds / 60);
-      return `${minutes}m`;
-    }
+    return this.formatDuration(seconds);
   }
 
-  public static getTimeOfDay(date: Date): string {
-    return date.toTimeString().split(' ')[0].substring(0, 5); // HH:MM format
+  public static getTimeOfDay(date: Date | string): string {
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    const hours = d.getUTCHours().toString().padStart(2, '0');
+    const minutes = d.getUTCMinutes().toString().padStart(2, '0');
+    const seconds = d.getUTCSeconds().toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
   }
 
-  public static getDateString(date: Date): string {
-    return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+  public static getDateString(date: Date | string): string {
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return format(d, 'yyyy-MM-dd');
   }
 
   public static isToday(date: Date): boolean {
@@ -131,25 +145,9 @@ export class TimeCalculations {
     return this.getDateString(date) === this.getDateString(yesterday);
   }
 
-  public static getRelativeTime(date: Date): string {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffSeconds = Math.floor(diffMs / 1000);
-    const diffMinutes = Math.floor(diffSeconds / 60);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffSeconds < 60) {
-      return 'just now';
-    } else if (diffMinutes < 60) {
-      return `${diffMinutes}m ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    } else if (diffDays < 7) {
-      return `${diffDays}d ago`;
-    } else {
-      return this.getDateString(date);
-    }
+  public static getRelativeTime(date: Date | string): string {
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return formatDistanceToNow(d, { addSuffix: true });
   }
 
   public static calculateVelocity(completedTasks: number, timePeriod: number): number {
@@ -206,5 +204,33 @@ export class TimeCalculations {
     } else {
       return 'active';
     }
+  }
+
+  public static getStartOfDay(date: Date): Date {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  public static getEndOfDay(date: Date): Date {
+    const d = new Date(date);
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }
+
+  public static getStartOfWeek(date: Date): Date {
+    return startOfWeek(date);
+  }
+
+  public static getEndOfWeek(date: Date): Date {
+    return endOfWeek(date);
+  }
+
+  public static getStartOfMonth(date: Date): Date {
+    return startOfMonth(date);
+  }
+
+  public static getEndOfMonth(date: Date): Date {
+    return endOfMonth(date);
   }
 }

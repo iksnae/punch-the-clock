@@ -1,6 +1,7 @@
 import { ProjectRepository } from '../repositories/ProjectRepository';
 import { Project, CreateProjectData, UpdateProjectData, ProjectFilters, ProjectStats } from '../types/Project';
 import { ProjectModel } from '../models/Project';
+import { performanceMonitor } from '../utils/performance';
 
 export class ProjectService {
   private repository: ProjectRepository;
@@ -10,9 +11,11 @@ export class ProjectService {
   }
 
   public async createProject(name: string, description?: string): Promise<Project> {
-    const data: CreateProjectData = { name, description };
-    const project = await this.repository.create(data);
-    return project.toJSON();
+    return await performanceMonitor.measureAsync('ProjectService.createProject', async () => {
+      const data: CreateProjectData = { name, description };
+      const project = await this.repository.create(data);
+      return project.toJSON();
+    });
   }
 
   public async getProject(id: number): Promise<Project | null> {
@@ -26,8 +29,10 @@ export class ProjectService {
   }
 
   public async listProjects(filters?: ProjectFilters): Promise<Project[]> {
-    const projects = await this.repository.list(filters);
-    return projects.map(project => project.toJSON());
+    return await performanceMonitor.measureAsync('ProjectService.listProjects', async () => {
+      const projects = await this.repository.list(filters);
+      return projects.map(project => project.toJSON());
+    });
   }
 
   public async updateProject(id: number, updates: UpdateProjectData): Promise<Project> {

@@ -210,8 +210,21 @@ export class ConfigUtils {
 
   public static getDefaultConfig(): PTCConfig {
     return {
+      currentProject: undefined,
+      defaultProject: undefined,
+      database: {
+        host: 'localhost',
+        port: 3306,
+        user: 'ptc_user',
+        password: 'ptc_password',
+        database: 'ptc_db',
+        ssl: false,
+        connectionLimit: 10,
+        acquireTimeout: 10000,
+        timeout: 10000,
+      },
       timezone: 'UTC',
-      dateFormat: 'YYYY-MM-DD',
+      dateFormat: 'yyyy-MM-dd',
       timeFormat: 'HH:mm:ss',
       outputFormat: 'table',
       autoSave: true,

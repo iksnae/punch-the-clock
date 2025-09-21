@@ -28,7 +28,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -51,7 +50,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 2,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -69,7 +67,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -90,7 +87,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -100,7 +96,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'paused',
         durationSeconds: 3600,
         pausedAt: new Date(),
         createdAt: new Date(),
@@ -132,7 +127,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'paused',
         durationSeconds: 3600,
         pausedAt: new Date(),
         createdAt: new Date(),
@@ -143,7 +137,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 3600,
         pausedAt: new Date(),
         resumedAt: new Date(),
@@ -176,7 +169,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -186,9 +178,8 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'stopped',
         durationSeconds: 7200,
-        endedAt: new Date(),
+        stoppedAt: new Date(),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -218,7 +209,6 @@ describe('TimeTrackingService', () => {
         id: 1,
         taskId: 1,
         startedAt: new Date(),
-        status: 'active',
         durationSeconds: 0,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -229,7 +219,7 @@ describe('TimeTrackingService', () => {
       const result = await timeTrackingService.getActiveSession();
 
       expect(mockTimeSessionRepository.getActiveSession).toHaveBeenCalledWith();
-      expect(result).toEqual(mockSession);
+      expect(result).toEqual(mockSession.toJSON());
     });
 
     it('should return null if no active session', async () => {
@@ -249,9 +239,8 @@ describe('TimeTrackingService', () => {
           id: 1,
           taskId: 1,
           startedAt: new Date(),
-          status: 'stopped',
           durationSeconds: 3600,
-          endedAt: new Date(),
+          stoppedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
@@ -259,19 +248,18 @@ describe('TimeTrackingService', () => {
           id: 2,
           taskId: 1,
           startedAt: new Date(),
-          status: 'stopped',
           durationSeconds: 1800,
-          endedAt: new Date(),
+          stoppedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
       ];
 
-      mockTimeSessionRepository.getByTask.mockResolvedValue(mockSessions);
+      mockTimeSessionRepository.list.mockResolvedValue(mockSessions);
 
       const result = await timeTrackingService.getSessionsByTask(1);
 
-      expect(mockTimeSessionRepository.getByTask).toHaveBeenCalledWith(1);
+      expect(mockTimeSessionRepository.list).toHaveBeenCalledWith({ taskId: 1 });
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockSessions[0].toJSON());
       expect(result[1]).toEqual(mockSessions[1].toJSON());
@@ -285,9 +273,8 @@ describe('TimeTrackingService', () => {
           id: 1,
           taskId: 1,
           startedAt: new Date(),
-          status: 'stopped',
           durationSeconds: 3600,
-          endedAt: new Date(),
+          stoppedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
@@ -295,19 +282,18 @@ describe('TimeTrackingService', () => {
           id: 2,
           taskId: 1,
           startedAt: new Date(),
-          status: 'stopped',
           durationSeconds: 1800,
-          endedAt: new Date(),
+          stoppedAt: new Date(),
           createdAt: new Date(),
           updatedAt: new Date(),
         }),
       ];
 
-      mockTimeSessionRepository.getByTask.mockResolvedValue(mockSessions);
+      mockTimeSessionRepository.list.mockResolvedValue(mockSessions);
 
       const result = await timeTrackingService.getTotalTimeForTask(1);
 
-      expect(mockTimeSessionRepository.getByTask).toHaveBeenCalledWith(1);
+      expect(mockTimeSessionRepository.list).toHaveBeenCalledWith({ taskId: 1, state: 'stopped' });
       expect(result).toBe(5400); // 3600 + 1800 seconds
     });
   });

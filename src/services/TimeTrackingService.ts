@@ -114,7 +114,7 @@ export class TimeTrackingService {
   }
 
   public async getSessionsByTask(taskId: number): Promise<TimeSession[]> {
-    const sessions = await this.repository.getSessionsByTask(taskId);
+    const sessions = await this.repository.list({ taskId });
     return sessions.map(session => session.toJSON());
   }
 
@@ -154,12 +154,16 @@ export class TimeTrackingService {
   }
 
   public async getTotalTimeForTask(taskId: number): Promise<number> {
-    const sessions = await this.repository.getSessionsByTask(taskId);
+    const sessions = await this.repository.list({ taskId, state: 'stopped' });
     return sessions.reduce((total, session) => total + session.getDurationSeconds(), 0);
   }
 
   public async getTotalTimeForDateRange(startDate: Date, endDate: Date): Promise<number> {
-    const sessions = await this.repository.getSessionsByDateRange(startDate, endDate);
+    const sessions = await this.repository.list({ 
+      startedFrom: TimeCalculations.getStartOfDay(startDate),
+      startedTo: TimeCalculations.getEndOfDay(endDate),
+      state: 'stopped'
+    });
     return sessions.reduce((total, session) => total + session.getDurationSeconds(), 0);
   }
 

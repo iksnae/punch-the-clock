@@ -3,8 +3,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Mock fs module
-jest.mock('fs');
-jest.mock('path');
+jest.mock('fs', () => ({
+  existsSync: jest.fn(),
+  readFileSync: jest.fn(),
+  writeFileSync: jest.fn(),
+  mkdirSync: jest.fn(),
+}));
+
+jest.mock('path', () => ({
+  join: jest.fn(),
+  dirname: jest.fn(),
+}));
 
 const mockFs = fs as jest.Mocked<typeof fs>;
 const mockPath = path as jest.Mocked<typeof path>;
@@ -12,17 +21,25 @@ const mockPath = path as jest.Mocked<typeof path>;
 describe('ConfigUtils', () => {
   const mockConfigPath = '/mock/config/path.json';
   const mockConfig = {
+    currentProject: undefined,
+    defaultProject: undefined,
     database: {
       host: 'localhost',
       port: 3306,
-      database: 'ptc_test',
-      user: 'test_user',
-      password: 'test_password',
+      user: 'ptc_user',
+      password: 'ptc_password',
+      database: 'ptc_db',
       ssl: false,
       connectionLimit: 10,
-      acquireTimeout: 60000,
-      timeout: 30000,
+      acquireTimeout: 10000,
+      timeout: 10000,
     },
+    timezone: 'UTC',
+    dateFormat: 'yyyy-MM-dd',
+    timeFormat: 'HH:mm:ss',
+    outputFormat: 'table',
+    autoSave: true,
+    confirmations: true,
   };
 
   beforeEach(() => {
@@ -43,7 +60,7 @@ describe('ConfigUtils', () => {
     it('should return the config file path', () => {
       const configPath = ConfigUtils.getConfigPath();
       expect(configPath).toBe(mockConfigPath);
-      expect(mockPath.join).toHaveBeenCalledWith(expect.any(String), 'ptc-config.json');
+      expect(mockPath.join).toHaveBeenCalledWith(expect.any(String), 'config.json');
     });
   });
 
@@ -54,17 +71,25 @@ describe('ConfigUtils', () => {
       const config = ConfigUtils.getConfig();
       
       expect(config).toEqual({
+        currentProject: undefined,
+        defaultProject: undefined,
         database: {
           host: 'localhost',
           port: 3306,
-          database: 'ptc',
-          user: 'root',
-          password: '',
+          user: 'ptc_user',
+          password: 'ptc_password',
+          database: 'ptc_db',
           ssl: false,
           connectionLimit: 10,
-          acquireTimeout: 60000,
-          timeout: 30000,
+          acquireTimeout: 10000,
+          timeout: 10000,
         },
+        timezone: 'UTC',
+        dateFormat: 'yyyy-MM-dd',
+        timeFormat: 'HH:mm:ss',
+        outputFormat: 'table',
+        autoSave: true,
+        confirmations: true,
       });
     });
 
@@ -85,17 +110,25 @@ describe('ConfigUtils', () => {
       const config = ConfigUtils.getConfig();
       
       expect(config).toEqual({
+        currentProject: undefined,
+        defaultProject: undefined,
         database: {
           host: 'localhost',
           port: 3306,
-          database: 'ptc',
-          user: 'root',
-          password: '',
+          user: 'ptc_user',
+          password: 'ptc_password',
+          database: 'ptc_db',
           ssl: false,
           connectionLimit: 10,
-          acquireTimeout: 60000,
-          timeout: 30000,
+          acquireTimeout: 10000,
+          timeout: 10000,
         },
+        timezone: 'UTC',
+        dateFormat: 'yyyy-MM-dd',
+        timeFormat: 'HH:mm:ss',
+        outputFormat: 'table',
+        autoSave: true,
+        confirmations: true,
       });
     });
   });
@@ -171,17 +204,25 @@ describe('ConfigUtils', () => {
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         mockConfigPath,
         JSON.stringify({
+          currentProject: undefined,
+          defaultProject: undefined,
           database: {
             host: 'localhost',
             port: 3306,
-            database: 'ptc',
-            user: 'root',
-            password: '',
+            user: 'ptc_user',
+            password: 'ptc_password',
+            database: 'ptc_db',
             ssl: false,
             connectionLimit: 10,
-            acquireTimeout: 60000,
-            timeout: 30000,
+            acquireTimeout: 10000,
+            timeout: 10000,
           },
+          timezone: 'UTC',
+          dateFormat: 'yyyy-MM-dd',
+          timeFormat: 'HH:mm:ss',
+          outputFormat: 'table',
+          autoSave: true,
+          confirmations: true,
         }, null, 2),
         'utf8'
       );
@@ -268,13 +309,13 @@ describe('ConfigUtils', () => {
       expect(dbConfig).toEqual({
         host: 'localhost',
         port: 3306,
-        database: 'ptc',
-        user: 'root',
-        password: '',
+        user: 'ptc_user',
+        password: 'ptc_password',
+        database: 'ptc_db',
         ssl: false,
         connectionLimit: 10,
-        acquireTimeout: 60000,
-        timeout: 30000,
+        acquireTimeout: 10000,
+        timeout: 10000,
       });
     });
   });

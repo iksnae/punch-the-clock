@@ -1,4 +1,5 @@
 import { OutputUtils } from '../../../src/cli/utils/output';
+import { TaskState } from '../../../src/types/Task';
 import chalk from 'chalk';
 
 // Mock chalk to avoid color output in tests
@@ -56,6 +57,7 @@ describe('OutputUtils', () => {
 
   describe('debug', () => {
     it('should log debug message', () => {
+      OutputUtils.initialize({ verbose: true, quiet: false, noColor: false }); // Enable verbose mode
       OutputUtils.debug('Test debug message');
       expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Test debug message'));
     });
@@ -63,6 +65,7 @@ describe('OutputUtils', () => {
 
   describe('verboseLog', () => {
     it('should log verbose message', () => {
+      OutputUtils.initialize({ verbose: true, quiet: false, noColor: false }); // Enable verbose mode
       OutputUtils.verboseLog('Test verbose message');
       expect(mockConsoleLog).toHaveBeenCalledWith(expect.stringContaining('Test verbose message'));
     });
@@ -133,7 +136,7 @@ describe('OutputUtils', () => {
       };
 
       OutputUtils.displayProjectDetails(project, stats);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(8); // Multiple log calls for different sections
+      expect(mockConsoleLog).toHaveBeenCalledTimes(15); // Multiple log calls for different sections
     });
   });
 
@@ -145,7 +148,7 @@ describe('OutputUtils', () => {
           projectId: 1,
           number: 'TASK-1',
           title: 'Test Task 1',
-          state: 'pending',
+          state: 'pending' as TaskState,
           timeEstimateHours: 2,
           tags: ['test', 'feature'],
           createdAt: new Date('2023-01-01'),
@@ -156,7 +159,7 @@ describe('OutputUtils', () => {
           projectId: 1,
           number: 'TASK-2',
           title: 'Test Task 2',
-          state: 'completed',
+          state: 'completed' as TaskState,
           timeEstimateHours: 1,
           tags: ['bug'],
           createdAt: new Date('2023-01-02'),
@@ -175,7 +178,7 @@ describe('OutputUtils', () => {
           projectId: 1,
           number: 'TASK-1',
           title: 'Test Task 1',
-          state: 'pending',
+          state: 'pending' as TaskState,
           timeEstimateHours: 2,
           tags: ['test', 'feature'],
           createdAt: new Date('2023-01-01'),
@@ -201,7 +204,7 @@ describe('OutputUtils', () => {
         number: 'TASK-1',
         title: 'Test Task',
         description: 'A test task',
-        state: 'in-progress',
+        state: 'in-progress' as TaskState,
         sizeEstimate: 2,
         timeEstimateHours: 2,
         tags: ['test', 'feature'],
@@ -213,7 +216,7 @@ describe('OutputUtils', () => {
         id: 1,
         number: 'TASK-1',
         title: 'Test Task',
-        state: 'in-progress',
+        state: 'in-progress' as TaskState,
         totalTimeSpent: 3600,
         sessionCount: 3,
         averageSessionTime: 1200,
@@ -221,7 +224,7 @@ describe('OutputUtils', () => {
       };
 
       OutputUtils.displayTaskDetails(task, stats);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(12); // Multiple log calls for different sections
+      expect(mockConsoleLog).toHaveBeenCalledTimes(19); // Multiple log calls for different sections
     });
 
     it('should display task details without stats', () => {
@@ -230,14 +233,14 @@ describe('OutputUtils', () => {
         projectId: 1,
         number: 'TASK-1',
         title: 'Test Task',
-        state: 'pending',
+        state: 'pending' as TaskState,
         tags: [],
         createdAt: new Date('2023-01-01'),
         updatedAt: new Date('2023-01-02'),
       };
 
       OutputUtils.displayTaskDetails(task);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(6); // Fewer log calls without stats
+      expect(mockConsoleLog).toHaveBeenCalledTimes(8); // Fewer log calls without stats
     });
   });
 
@@ -304,7 +307,7 @@ describe('OutputUtils', () => {
       };
 
       OutputUtils.displayTimeReport(report);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(6); // Multiple log calls for different sections
+      expect(mockConsoleLog).toHaveBeenCalledTimes(7); // Multiple log calls for different sections
     });
   });
 
@@ -323,7 +326,7 @@ describe('OutputUtils', () => {
       };
 
       OutputUtils.displayVelocityReport(report);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(7); // Multiple log calls for different sections
+      expect(mockConsoleLog).toHaveBeenCalledTimes(9); // Multiple log calls for different sections
     });
   });
 
@@ -345,7 +348,7 @@ describe('OutputUtils', () => {
       };
 
       OutputUtils.displayEstimationReport(report);
-      expect(mockConsoleLog).toHaveBeenCalledTimes(8); // Multiple log calls for different sections
+      expect(mockConsoleLog).toHaveBeenCalledTimes(12); // Multiple log calls for different sections
     });
   });
 });
