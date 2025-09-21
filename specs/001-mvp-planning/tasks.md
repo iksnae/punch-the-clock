@@ -1,404 +1,675 @@
 # PTC MVP Implementation Tasks
 
-## Phase 1: Foundation & Core CLI (Weeks 1-2)
+## Feature Overview
+**Feature Name:** PTC MVP - Core Time Tracking CLI  
+**Branch:** 001-mvp-planning  
+**Total Tasks:** 25  
+**Estimated Timeline:** 4-6 weeks
 
-### Task 1.1: Project Setup and Configuration
-**Priority**: High  
-**Estimated Effort**: 4 hours  
-**Size**: 2 story points
+## Task Categories
+- **Setup Tasks**: Project initialization, dependencies, configuration
+- **Test Tasks [P]**: Contract tests, integration tests, user story tests
+- **Core Tasks**: Database models, services, CLI commands
+- **Integration Tasks**: Database connections, error handling, logging
+- **Polish Tasks [P]**: Unit tests, performance optimization, documentation
 
-**Description**: Set up the basic project structure with TypeScript, build configuration, and development tools.
+## Parallel Execution Groups
+Tasks marked with [P] can be executed in parallel within their group.
 
-**Acceptance Criteria**:
-- [ ] TypeScript configuration with strict mode enabled
-- [ ] ESLint and Prettier configuration
+---
+
+## T001: Project Setup and TypeScript Configuration
+**Type:** Setup  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** None
+
+**Description:** Set up the basic project structure with TypeScript, build configuration, and development tools.
+
+**Files to Create/Modify:**
+- `src/` directory structure
+- `tsconfig.json` (already exists, verify configuration)
+- `package.json` (already exists, verify dependencies)
+- `.eslintrc.js`
+- `.prettierrc`
+- `jest.config.js`
+
+**Acceptance Criteria:**
+- [ ] TypeScript compiles without errors
+- [ ] ESLint and Prettier configured and working
 - [ ] Jest testing framework setup
-- [ ] Build scripts for development and production
-- [ ] Package.json with all required dependencies
-- [ ] Basic project structure with src/ and dist/ directories
+- [ ] Build scripts work for development and production
+- [ ] All dependencies installed and verified
 
-**Dependencies**: None
+---
 
-**Definition of Done**:
-- All linting passes
-- Tests can be run with `npm test`
-- Build produces clean output in dist/
-- Development server runs without errors
+## T002: Database Schema Implementation [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 6 hours  
+**Dependencies:** T001
 
-### Task 1.2: Database Schema and Migration System
-**Priority**: High  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Description:** Implement the MySQL database schema with all tables, indexes, and constraints.
 
-**Description**: Design and implement the MySQL database schema with migration system.
+**Files to Create/Modify:**
+- `src/database/schema.sql`
+- `src/database/migrations/001_initial_schema.sql`
+- `src/database/indexes.sql`
 
-**Acceptance Criteria**:
-- [ ] Database schema defined in SQL files
-- [ ] Migration system for schema versioning
-- [ ] Database connection service with connection pooling
-- [ ] Basic CRUD operations for all tables
-- [ ] Data validation and constraint enforcement
-- [ ] Database initialization script
+**Acceptance Criteria:**
+- [ ] All 6 tables created (projects, tasks, task_tags, time_sessions, estimation_history, configuration)
+- [ ] Foreign key constraints enforced
+- [ ] All indexes created for performance
+- [ ] Data validation rules implemented
+- [ ] Schema can be created and dropped cleanly
 
-**Dependencies**: Task 1.1
+---
 
-**Definition of Done**:
-- All tables created successfully
-- Foreign key constraints enforced
-- Indexes created for performance
-- Migration system can upgrade/downgrade schema
-- Connection pooling configured
+## T003: Database Connection Service [P]
+**Type:** Integration  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T001
 
-### Task 1.3: CLI Framework and Command Structure
-**Priority**: High  
-**Estimated Effort**: 8 hours  
-**Size**: 5 story points
+**Description:** Implement database connection service with connection pooling and error handling.
 
-**Description**: Implement the basic CLI structure using Commander.js with command parsing and help system.
+**Files to Create/Modify:**
+- `src/database/connection.ts`
+- `src/database/config.ts`
+- `src/database/types.ts`
 
-**Acceptance Criteria**:
-- [ ] Commander.js integration with TypeScript
-- [ ] Basic command structure (init, list, add, start, stop)
-- [ ] Help system with command descriptions
-- [ ] Global options (--help, --version, --verbose)
-- [ ] Error handling and user feedback
-- [ ] Configuration file support
+**Acceptance Criteria:**
+- [ ] Connection pooling configured
+- [ ] Connection retry logic implemented
+- [ ] Error handling for connection failures
+- [ ] Configuration loading from file and environment
+- [ ] Connection health checking
 
-**Dependencies**: Task 1.1
+---
 
-**Definition of Done**:
-- CLI responds to basic commands
-- Help text is comprehensive and accurate
-- Error messages are clear and actionable
-- Configuration is loaded from file
+## T004: Database Migration System [P]
+**Type:** Integration  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** T002, T003
 
-### Task 1.4: Project Management Commands
-**Priority**: High  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Description:** Implement database migration system for schema versioning.
 
-**Description**: Implement project creation, listing, and switching functionality.
+**Files to Create/Modify:**
+- `src/database/migrator.ts`
+- `src/database/migrations/`
+- `src/database/version.ts`
 
-**Acceptance Criteria**:
-- [ ] `ptc init <project-name>` creates new project
-- [ ] `ptc list projects` shows all projects
-- [ ] `ptc project <name>` switches project context
-- [ ] Project validation (unique names, valid characters)
-- [ ] Project context persistence
-- [ ] Error handling for invalid projects
+**Acceptance Criteria:**
+- [ ] Migration system can upgrade/downgrade schema
+- [ ] Version tracking in database
+- [ ] Rollback capability
+- [ ] Migration validation
+- [ ] Automatic migration on startup
 
-**Dependencies**: Task 1.2, Task 1.3
+---
 
-**Definition of Done**:
-- Projects can be created and listed
-- Project switching works correctly
-- Context persists between CLI sessions
-- Validation prevents duplicate project names
+## T005: Project Data Model [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 2 hours  
+**Dependencies:** T002
 
-### Task 1.5: Task Management Commands
-**Priority**: High  
-**Estimated Effort**: 8 hours  
-**Size**: 5 story points
+**Description:** Implement Project data model with TypeScript interfaces and validation.
 
-**Description**: Implement task creation, listing, and management functionality.
+**Files to Create/Modify:**
+- `src/models/Project.ts`
+- `src/types/Project.ts`
+- `src/validation/project.ts`
 
-**Acceptance Criteria**:
-- [ ] `ptc add <title>` creates new task
-- [ ] `ptc list tasks` shows tasks in current project
-- [ ] `ptc task <id>` shows task details
-- [ ] Task validation (required fields, valid states)
-- [ ] Tag system for task categorization
-- [ ] Task state management
+**Acceptance Criteria:**
+- [ ] Project interface defined
+- [ ] Data validation rules implemented
+- [ ] Type safety enforced
+- [ ] Serialization/deserialization methods
+- [ ] Business rule validation
 
-**Dependencies**: Task 1.2, Task 1.3
+---
 
-**Definition of Done**:
-- Tasks can be created with all metadata
-- Task listing shows relevant information
-- Task details are comprehensive
-- Tags work correctly for categorization
+## T006: Task Data Model [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** T002
 
-## Phase 2: Time Tracking & Reporting (Weeks 3-4)
+**Description:** Implement Task data model with all metadata and relationships.
 
-### Task 2.1: Time Tracking Core Logic
-**Priority**: High  
-**Estimated Effort**: 10 hours  
-**Size**: 8 story points
+**Files to Create/Modify:**
+- `src/models/Task.ts`
+- `src/types/Task.ts`
+- `src/validation/task.ts`
 
-**Description**: Implement the core time tracking functionality with start/pause/resume/stop commands.
+**Acceptance Criteria:**
+- [ ] Task interface with all fields
+- [ ] TaskState enum defined
+- [ ] Tag relationship handling
+- [ ] Estimation validation
+- [ ] State transition validation
 
-**Acceptance Criteria**:
-- [ ] `ptc start <task-id>` begins time tracking
-- [ ] `ptc pause` pauses current tracking
-- [ ] `ptc resume` resumes paused tracking
-- [ ] `ptc stop` stops tracking and saves session
-- [ ] Timestamp-based calculations (no actual timers)
-- [ ] Only one active session at a time
-- [ ] Session data persisted to database
+---
 
-**Dependencies**: Task 1.2, Task 1.5
+## T007: TimeSession Data Model [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 2 hours  
+**Dependencies:** T002
 
-**Definition of Done**:
-- Time tracking works correctly with all states
-- Sessions are accurately calculated
-- Data persists across CLI sessions
-- Concurrent session prevention works
+**Description:** Implement TimeSession data model for time tracking.
 
-### Task 2.2: Time Calculation Engine
-**Priority**: High  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Files to Create/Modify:**
+- `src/models/TimeSession.ts`
+- `src/types/TimeSession.ts`
+- `src/validation/timeSession.ts`
 
-**Description**: Implement accurate time calculations with timezone handling and edge case management.
+**Acceptance Criteria:**
+- [ ] TimeSession interface defined
+- [ ] Timestamp validation
+- [ ] Duration calculation methods
+- [ ] State validation (active, paused, stopped)
+- [ ] Time sequence validation
 
-**Acceptance Criteria**:
-- [ ] Accurate duration calculations from timestamps
-- [ ] Timezone handling (store UTC, display local)
-- [ ] Daylight saving time edge cases handled
-- [ ] Time formatting for display (hours, minutes, seconds)
-- [ ] Rounding to appropriate precision
-- [ ] Validation of time sequences
+---
 
-**Dependencies**: Task 2.1
+## T008: ProjectService Implementation [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T003, T005
 
-**Definition of Done**:
-- Time calculations are accurate
-- Timezone conversions work correctly
-- Edge cases are handled gracefully
-- Time formatting is user-friendly
+**Description:** Implement ProjectService with all CRUD operations and business logic.
 
-### Task 2.3: Basic Reporting System
-**Priority**: Medium  
-**Estimated Effort**: 8 hours  
-**Size**: 5 story points
+**Files to Create/Modify:**
+- `src/services/ProjectService.ts`
+- `src/repositories/ProjectRepository.ts`
 
-**Description**: Implement basic time reporting functionality.
+**Acceptance Criteria:**
+- [ ] All ProjectService methods implemented
+- [ ] Database operations with transactions
+- [ ] Error handling for all scenarios
+- [ ] Input validation
+- [ ] Performance optimized queries
 
-**Acceptance Criteria**:
-- [ ] `ptc report time` shows time spent by task/project
-- [ ] Time filtering by date range
-- [ ] Time grouping by project, task, or tags
-- [ ] Formatted output with totals
-- [ ] JSON output option for programmatic access
-- [ ] Performance optimization for large datasets
+---
 
-**Dependencies**: Task 2.2
+## T009: TaskService Implementation [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 5 hours  
+**Dependencies:** T003, T006
 
-**Definition of Done**:
-- Reports show accurate time data
-- Filtering and grouping work correctly
-- Output is well-formatted and readable
-- Performance is acceptable for large datasets
+**Description:** Implement TaskService with task management and tag handling.
 
-### Task 2.4: Error Handling and Recovery
-**Priority**: High  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Files to Create/Modify:**
+- `src/services/TaskService.ts`
+- `src/repositories/TaskRepository.ts`
+- `src/repositories/TaskTagRepository.ts`
 
-**Description**: Implement comprehensive error handling and recovery mechanisms.
-
-**Acceptance Criteria**:
-- [ ] Database connection error handling
-- [ ] Graceful degradation when DB unavailable
-- [ ] Clear error messages with suggested solutions
-- [ ] Recovery procedures for common issues
-- [ ] Logging system for debugging
-- [ ] Transaction rollback on errors
-
-**Dependencies**: Task 2.1
-
-**Definition of Done**:
-- Errors are handled gracefully
-- Users get clear guidance on fixing issues
-- System recovers from common failures
-- Logging provides useful debugging information
-
-## Phase 3: Velocity Tracking & Polish (Weeks 5-6)
-
-### Task 3.1: Estimation Tracking System
-**Priority**: Medium  
-**Estimated Effort**: 8 hours  
-**Size**: 5 story points
-
-**Description**: Implement estimation tracking with size and time estimates.
-
-**Acceptance Criteria**:
-- [ ] Task creation with size estimates (story points)
-- [ ] Task creation with time estimates (hours)
+**Acceptance Criteria:**
+- [ ] All TaskService methods implemented
+- [ ] Tag management functionality
+- [ ] Task filtering and search
 - [ ] Estimation history tracking
-- [ ] Estimation updates with audit trail
-- [ ] Validation of estimate values
-- [ ] Estimation display in task details
+- [ ] Project relationship handling
 
-**Dependencies**: Task 1.5
+---
 
-**Definition of Done**:
-- Estimates can be added and updated
-- History is preserved for analysis
-- Validation prevents invalid estimates
-- Estimates are displayed clearly
+## T010: TimeTrackingService Implementation [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 6 hours  
+**Dependencies:** T003, T007
 
-### Task 3.2: Velocity Reporting
-**Priority**: Medium  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Description:** Implement TimeTrackingService with start/pause/resume/stop functionality.
 
-**Description**: Implement velocity reporting with story points per time period.
+**Files to Create/Modify:**
+- `src/services/TimeTrackingService.ts`
+- `src/repositories/TimeSessionRepository.ts`
+- `src/utils/timeCalculations.ts`
 
-**Acceptance Criteria**:
-- [ ] `ptc report velocity` shows velocity metrics
-- [ ] Story points completed per week/month
-- [ ] Velocity trends over time
-- [ ] Project-specific velocity tracking
-- [ ] Velocity comparison across periods
-- [ ] Formatted velocity charts
+**Acceptance Criteria:**
+- [ ] All time tracking methods implemented
+- [ ] Only one active session enforcement
+- [ ] Accurate time calculations
+- [ ] Session state management
+- [ ] Timezone handling
 
-**Dependencies**: Task 3.1, Task 2.3
+---
 
-**Definition of Done**:
-- Velocity calculations are accurate
-- Trends are clearly displayed
-- Project filtering works correctly
-- Output is easy to understand
+## T011: ReportingService Implementation [P]
+**Type:** Core  
+**Priority:** Medium  
+**Estimated Effort:** 5 hours  
+**Dependencies:** T003, T008, T009, T010
 
-### Task 3.3: Estimation Accuracy Reports
-**Priority**: Medium  
-**Estimated Effort**: 6 hours  
-**Size**: 3 story points
+**Description:** Implement ReportingService for time, velocity, and estimation reports.
 
-**Description**: Implement estimation accuracy reporting and analysis.
+**Files to Create/Modify:**
+- `src/services/ReportingService.ts`
+- `src/reports/TimeReport.ts`
+- `src/reports/VelocityReport.ts`
+- `src/reports/EstimationReport.ts`
 
-**Acceptance Criteria**:
-- [ ] `ptc report estimates` shows accuracy metrics
-- [ ] Actual vs estimated time comparison
-- [ ] Estimation accuracy percentages
-- [ ] Trends in estimation accuracy
-- [ ] Project-specific accuracy tracking
-- [ ] Recommendations for improvement
+**Acceptance Criteria:**
+- [ ] Time reporting with filtering and grouping
+- [ ] Velocity calculations and trends
+- [ ] Estimation accuracy analysis
+- [ ] Performance optimized queries
+- [ ] Flexible report formatting
 
-**Dependencies**: Task 3.1, Task 2.3
+---
 
-**Definition of Done**:
-- Accuracy calculations are correct
-- Trends show meaningful insights
-- Recommendations are actionable
-- Reports are easy to interpret
+## T012: CLI Framework Setup [P]
+**Type:** Integration  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** T001
 
-### Task 3.4: Performance Optimization
-**Priority**: Medium  
-**Estimated Effort**: 4 hours  
-**Size**: 2 story points
+**Description:** Set up Commander.js CLI framework with command structure and help system.
 
-**Description**: Optimize performance for large datasets and complex queries.
+**Files to Create/Modify:**
+- `src/cli/index.ts`
+- `src/cli/commands/`
+- `src/cli/utils/help.ts`
 
-**Acceptance Criteria**:
-- [ ] Database queries optimized with proper indexes
+**Acceptance Criteria:**
+- [ ] Commander.js integrated with TypeScript
+- [ ] Command structure defined
+- [ ] Help system working
+- [ ] Global options implemented
+- [ ] Error handling framework
+
+---
+
+## T013: Project CLI Commands [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T012, T008
+
+**Description:** Implement project management CLI commands (init, list, switch).
+
+**Files to Create/Modify:**
+- `src/cli/commands/project/init.ts`
+- `src/cli/commands/project/list.ts`
+- `src/cli/commands/project/switch.ts`
+
+**Acceptance Criteria:**
+- [ ] `ptc init <project-name>` command working
+- [ ] `ptc list projects` command working
+- [ ] `ptc project <name>` command working
+- [ ] Error handling for all scenarios
+- [ ] Output formatting (table/JSON)
+
+---
+
+## T014: Task CLI Commands [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 5 hours  
+**Dependencies:** T012, T009
+
+**Description:** Implement task management CLI commands (add, list, show, update).
+
+**Files to Create/Modify:**
+- `src/cli/commands/task/add.ts`
+- `src/cli/commands/task/list.ts`
+- `src/cli/commands/task/show.ts`
+- `src/cli/commands/task/update.ts`
+
+**Acceptance Criteria:**
+- [ ] `ptc add <title>` command working
+- [ ] `ptc list tasks` command working
+- [ ] `ptc task <id>` command working
+- [ ] `ptc update <id>` command working
+- [ ] All options and filters working
+
+---
+
+## T015: Time Tracking CLI Commands [P]
+**Type:** Core  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T012, T010
+
+**Description:** Implement time tracking CLI commands (start, pause, resume, stop).
+
+**Files to Create/Modify:**
+- `src/cli/commands/time/start.ts`
+- `src/cli/commands/time/pause.ts`
+- `src/cli/commands/time/resume.ts`
+- `src/cli/commands/time/stop.ts`
+
+**Acceptance Criteria:**
+- [ ] `ptc start <task-id>` command working
+- [ ] `ptc pause` command working
+- [ ] `ptc resume` command working
+- [ ] `ptc stop` command working
+- [ ] Active session management
+
+---
+
+## T016: Reporting CLI Commands [P]
+**Type:** Core  
+**Priority:** Medium  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T012, T011
+
+**Description:** Implement reporting CLI commands (time, velocity, estimates).
+
+**Files to Create/Modify:**
+- `src/cli/commands/report/time.ts`
+- `src/cli/commands/report/velocity.ts`
+- `src/cli/commands/report/estimates.ts`
+
+**Acceptance Criteria:**
+- [ ] `ptc report time` command working
+- [ ] `ptc report velocity` command working
+- [ ] `ptc report estimates` command working
+- [ ] All filtering options working
+- [ ] Output formatting options
+
+---
+
+## T017: Configuration CLI Commands [P]
+**Type:** Core  
+**Priority:** Medium  
+**Estimated Effort:** 2 hours  
+**Dependencies:** T012
+
+**Description:** Implement configuration management CLI commands.
+
+**Files to Create/Modify:**
+- `src/cli/commands/config/show.ts`
+- `src/cli/commands/config/set.ts`
+- `src/config/ConfigManager.ts`
+
+**Acceptance Criteria:**
+- [ ] `ptc config show` command working
+- [ ] `ptc config set <key> <value>` command working
+- [ ] Configuration file management
+- [ ] Environment variable support
+- [ ] Configuration validation
+
+---
+
+## T018: Error Handling and Logging [P]
+**Type:** Integration  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** T001
+
+**Description:** Implement comprehensive error handling and logging system.
+
+**Files to Create/Modify:**
+- `src/errors/CustomErrors.ts`
+- `src/utils/Logger.ts`
+- `src/cli/utils/errorHandler.ts`
+
+**Acceptance Criteria:**
+- [ ] All custom error types defined
+- [ ] Centralized error handling
+- [ ] Logging system with levels
+- [ ] User-friendly error messages
+- [ ] Debug information for developers
+
+---
+
+## T019: Input Validation and Sanitization [P]
+**Type:** Integration  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** T001
+
+**Description:** Implement input validation and sanitization for all user inputs.
+
+**Files to Create/Modify:**
+- `src/validation/input.ts`
+- `src/validation/sanitization.ts`
+- `src/utils/validators.ts`
+
+**Acceptance Criteria:**
+- [ ] All input validation rules implemented
+- [ ] SQL injection prevention
+- [ ] Command injection prevention
+- [ ] Path traversal prevention
+- [ ] Input sanitization
+
+---
+
+## T020: Database Service Tests [P]
+**Type:** Test  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** T008, T009, T010, T011
+
+**Description:** Write comprehensive tests for all database services.
+
+**Files to Create/Modify:**
+- `tests/services/ProjectService.test.ts`
+- `tests/services/TaskService.test.ts`
+- `tests/services/TimeTrackingService.test.ts`
+- `tests/services/ReportingService.test.ts`
+- `tests/fixtures/`
+
+**Acceptance Criteria:**
+- [ ] All service methods tested
+- [ ] Error scenarios covered
+- [ ] Database transaction tests
+- [ ] Performance tests
+- [ ] Test coverage > 80%
+
+---
+
+## T021: CLI Command Tests [P]
+**Type:** Test  
+**Priority:** High  
+**Estimated Effort:** 5 hours  
+**Dependencies:** T013, T014, T015, T016, T017
+
+**Description:** Write integration tests for all CLI commands.
+
+**Files to Create/Modify:**
+- `tests/cli/project.test.ts`
+- `tests/cli/task.test.ts`
+- `tests/cli/time.test.ts`
+- `tests/cli/report.test.ts`
+- `tests/cli/config.test.ts`
+
+**Acceptance Criteria:**
+- [ ] All CLI commands tested
+- [ ] Error scenarios covered
+- [ ] Output format validation
+- [ ] Integration with database
+- [ ] User workflow tests
+
+---
+
+## T022: User Story Integration Tests [P]
+**Type:** Test  
+**Priority:** High  
+**Estimated Effort:** 4 hours  
+**Dependencies:** All CLI commands
+
+**Description:** Write integration tests for complete user workflows.
+
+**Files to Create/Modify:**
+- `tests/integration/quickstart.test.ts`
+- `tests/integration/velocity-tracking.test.ts`
+- `tests/integration/estimation-accuracy.test.ts`
+
+**Acceptance Criteria:**
+- [ ] Complete user workflows tested
+- [ ] Quickstart guide scenarios
+- [ ] Velocity tracking scenarios
+- [ ] Estimation accuracy scenarios
+- [ ] End-to-end functionality
+
+---
+
+## T023: Performance Optimization [P]
+**Type:** Polish  
+**Priority:** Medium  
+**Estimated Effort:** 4 hours  
+**Dependencies:** All core functionality
+
+**Description:** Optimize performance for large datasets and complex queries.
+
+**Files to Create/Modify:**
+- `src/database/optimization/`
+- `src/utils/performance.ts`
+- `tests/performance/`
+
+**Acceptance Criteria:**
+- [ ] Database queries optimized
 - [ ] CLI commands respond within 100ms
 - [ ] Large dataset handling (1000+ tasks)
-- [ ] Memory usage optimization
-- [ ] Connection pooling efficiency
-- [ ] Query result caching where appropriate
+- [ ] Memory usage optimized
+- [ ] Performance benchmarks met
 
-**Dependencies**: Task 2.3
+---
 
-**Definition of Done**:
-- Performance targets are met
-- Large datasets are handled efficiently
-- Memory usage is reasonable
-- Queries are optimized
+## T024: Package Preparation and Publishing [P]
+**Type:** Polish  
+**Priority:** High  
+**Estimated Effort:** 3 hours  
+**Dependencies:** All functionality
 
-### Task 3.5: Package Preparation and Publishing
-**Priority**: High  
-**Estimated Effort**: 4 hours  
-**Size**: 2 story points
+**Description:** Prepare package for npm publishing with proper configuration.
 
-**Description**: Prepare the package for npm publishing with proper configuration and documentation.
+**Files to Create/Modify:**
+- `package.json` (final configuration)
+- `README.md` (update with final instructions)
+- `LICENSE`
+- `CHANGELOG.md`
+- `src/cli.ts` (main entry point)
 
-**Acceptance Criteria**:
-- [ ] Package.json configured for publishing
-- [ ] CLI binary properly configured
-- [ ] README.md with installation and usage instructions
-- [ ] License and metadata files
-- [ ] Build process for production
-- [ ] npm publish workflow
+**Acceptance Criteria:**
+- [ ] Package installs correctly from npm
+- [ ] CLI command works after installation
+- [ ] Documentation is complete
+- [ ] Build process automated
+- [ ] Version management setup
 
-**Dependencies**: All previous tasks
+---
 
-**Definition of Done**:
-- Package installs correctly from npm
-- CLI command works after installation
-- Documentation is complete and accurate
-- Build process is automated
+## T025: Documentation and User Guides [P]
+**Type:** Polish  
+**Priority:** Medium  
+**Estimated Effort:** 4 hours  
+**Dependencies:** All functionality
 
-### Task 3.6: Testing and Quality Assurance
-**Priority**: High  
-**Estimated Effort**: 8 hours  
-**Size**: 5 story points
+**Description:** Create comprehensive documentation and user guides.
 
-**Description**: Implement comprehensive testing and quality assurance.
+**Files to Create/Modify:**
+- `docs/API.md`
+- `docs/CONTRIBUTING.md`
+- `docs/TROUBLESHOOTING.md`
+- `examples/`
+- `docs/DEVELOPMENT.md`
 
-**Acceptance Criteria**:
-- [ ] Unit tests for all core functions
-- [ ] Integration tests for database operations
-- [ ] CLI command testing
-- [ ] Error scenario testing
-- [ ] Performance testing
-- [ ] Code coverage reporting
+**Acceptance Criteria:**
+- [ ] API documentation complete
+- [ ] Contributing guidelines
+- [ ] Troubleshooting guide
+- [ ] Usage examples
+- [ ] Development setup guide
 
-**Dependencies**: All previous tasks
+---
 
-**Definition of Done**:
+## Parallel Execution Examples
+
+### Group 1: Database Foundation (T002, T003, T004)
+```bash
+# These can run in parallel as they work on different aspects of database setup
+Task agent: T002  # Database Schema Implementation
+Task agent: T003  # Database Connection Service  
+Task agent: T004  # Database Migration System
+```
+
+### Group 2: Data Models (T005, T006, T007)
+```bash
+# These can run in parallel as they implement different models
+Task agent: T005  # Project Data Model
+Task agent: T006  # Task Data Model
+Task agent: T007  # TimeSession Data Model
+```
+
+### Group 3: Core Services (T008, T009, T010, T011)
+```bash
+# These can run in parallel as they implement different services
+Task agent: T008  # ProjectService Implementation
+Task agent: T009  # TaskService Implementation
+Task agent: T010  # TimeTrackingService Implementation
+Task agent: T011  # ReportingService Implementation
+```
+
+### Group 4: CLI Commands (T013, T014, T015, T016, T017)
+```bash
+# These can run in parallel as they implement different command groups
+Task agent: T013  # Project CLI Commands
+Task agent: T014  # Task CLI Commands
+Task agent: T015  # Time Tracking CLI Commands
+Task agent: T016  # Reporting CLI Commands
+Task agent: T017  # Configuration CLI Commands
+```
+
+### Group 5: Integration Components (T018, T019)
+```bash
+# These can run in parallel as they implement different integration aspects
+Task agent: T018  # Error Handling and Logging
+Task agent: T019  # Input Validation and Sanitization
+```
+
+### Group 6: Testing (T020, T021, T022)
+```bash
+# These can run in parallel as they test different components
+Task agent: T020  # Database Service Tests
+Task agent: T021  # CLI Command Tests
+Task agent: T022  # User Story Integration Tests
+```
+
+### Group 7: Polish (T023, T024, T025)
+```bash
+# These can run in parallel as they polish different aspects
+Task agent: T023  # Performance Optimization
+Task agent: T024  # Package Preparation and Publishing
+Task agent: T025  # Documentation and User Guides
+```
+
+## Dependencies Summary
+
+### Critical Path (Sequential)
+1. T001 → T002, T003, T004 (Database foundation)
+2. T002 → T005, T006, T007 (Data models)
+3. T003, T005 → T008 (ProjectService)
+4. T003, T006 → T009 (TaskService)
+5. T003, T007 → T010 (TimeTrackingService)
+6. T008, T009, T010 → T011 (ReportingService)
+7. T001 → T012 (CLI Framework)
+8. T012, T008 → T013 (Project Commands)
+9. T012, T009 → T014 (Task Commands)
+10. T012, T010 → T015 (Time Commands)
+11. T012, T011 → T016 (Report Commands)
+12. T012 → T017 (Config Commands)
+
+### Parallel Opportunities
+- Database setup tasks (T002, T003, T004)
+- Data model tasks (T005, T006, T007)
+- Service implementation tasks (T008, T009, T010, T011)
+- CLI command tasks (T013, T014, T015, T016, T017)
+- Integration tasks (T018, T019)
+- Testing tasks (T020, T021, T022)
+- Polish tasks (T023, T024, T025)
+
+## Success Criteria
+- All 25 tasks completed successfully
 - Test coverage > 80%
-- All tests pass consistently
-- Performance tests validate requirements
-- Quality gates are met
-
-## Risk Mitigation Tasks
-
-### Task R1: Database Backup and Recovery
-**Priority**: Medium  
-**Estimated Effort**: 4 hours  
-**Size**: 2 story points
-
-**Description**: Implement database backup and recovery procedures.
-
-**Acceptance Criteria**:
-- [ ] Automated backup script
-- [ ] Recovery procedures documented
-- [ ] Data export functionality
-- [ ] Backup validation
-- [ ] Recovery testing
-
-### Task R2: Configuration Management
-**Priority**: Medium  
-**Estimated Effort**: 3 hours  
-**Size**: 1 story point
-
-**Description**: Implement robust configuration management system.
-
-**Acceptance Criteria**:
-- [ ] Configuration file validation
-- [ ] Environment variable support
-- [ ] Configuration migration
-- [ ] Default value handling
-- [ ] Configuration documentation
-
-## Success Metrics
-
-### Performance Metrics
-- CLI commands respond within 100ms
-- Database queries complete within 10ms
-- Support for 1000+ tasks without degradation
-- Memory usage < 100MB for typical operations
-
-### Quality Metrics
-- Test coverage > 80%
-- Zero critical bugs in production
-- User onboarding time < 5 minutes
-- Error recovery success rate > 95%
-
-### User Experience Metrics
-- Command completion time < 2 seconds
-- Help system covers all commands
-- Error messages are actionable
-- Documentation is comprehensive
+- Performance targets met (<100ms CLI response)
+- Package successfully publishes to npm
+- User can complete quickstart guide in <5 minutes
+- All constitution principles satisfied
