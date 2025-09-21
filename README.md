@@ -1,10 +1,10 @@
-# Punch Tracker
+# PTC - Punch the Clock
 
 A task-based time tracking CLI tool designed for developers and AI coding agents to measure development velocity.
 
 ## Overview
 
-Punch Tracker allows you to create projects, attach tasks with numbers, titles, descriptions, states, and tags, then track time using simple start/pause/resume/stop commands. All time calculations are based on timestamps - no actual timers required. Perfect for measuring development velocity and estimation accuracy.
+PTC (Punch the Clock) allows you to create projects, attach tasks with numbers, titles, descriptions, states, and tags, then track time using simple start/pause/resume/stop commands. All time calculations are based on timestamps - no actual timers required. Perfect for measuring development velocity and estimation accuracy.
 
 ## Features
 
@@ -20,29 +20,29 @@ Punch Tracker allows you to create projects, attach tasks with numbers, titles, 
 ## Installation
 
 ```bash
-npm install -g punch-tracker
+npm install -g punch-the-clock
 ```
 
 ## Usage
 
 ```bash
 # Initialize a new project
-punch init my-project
+ptc init my-project
 
 # Add a task with optional estimates
-punch add "Fix login bug" --estimate 2h --size 3
+ptc add "Fix login bug" --estimate 2h --size 3
 
 # Start tracking time
-punch start task-1
+ptc start task-1
 
 # Pause, resume, or stop
-punch pause
-punch resume
-punch stop
+ptc pause
+ptc resume
+ptc stop
 
 # Generate velocity reports
-punch report velocity
-punch report estimates
+ptc report velocity
+ptc report estimates
 ```
 
 ## Development

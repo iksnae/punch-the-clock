@@ -1,10 +1,10 @@
 {
-  "name": "punch-tracker",
+  "name": "punch-the-clock",
   "version": "0.1.0",
-  "description": "A task-based time tracking CLI for developers and AI coding agents to measure development velocity",
+  "description": "PTC - Punch the Clock: A task-based time tracking CLI for developers and AI coding agents to measure development velocity",
   "main": "dist/index.js",
   "bin": {
-    "punch": "dist/cli.js"
+    "ptc": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -25,18 +25,21 @@
     "project-management",
     "task-tracking",
     "development-metrics",
-    "ai-agents"
+    "ai-agents",
+    "punch-the-clock",
+    "ptc",
+    "timeclock"
   ],
   "author": "Your Name <your.email@example.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/punch-tracker.git"
+    "url": "https://github.com/yourusername/punch-the-clock.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/punch-tracker/issues"
+    "url": "https://github.com/yourusername/punch-the-clock/issues"
   },
-  "homepage": "https://github.com/yourusername/punch-tracker#readme",
+  "homepage": "https://github.com/yourusername/punch-the-clock#readme",
   "engines": {
     "node": ">=16.0.0"
   },
