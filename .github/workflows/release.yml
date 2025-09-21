@@ -82,9 +82,9 @@ jobs:
           ```
           
           **Via Binary Download:**
-          - **Linux**: [ptc-linux](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ptc-linux)
-          - **macOS**: [ptc-macos](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ptc-macos)
-          - **Windows**: [ptc-windows.exe](https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ptc-windows.exe)
+          - **Linux**: [ptc-linux](https://github.com/iksnae/punch-the-clock/releases/download/${{ steps.version.outputs.version }}/ptc-linux)
+          - **macOS**: [ptc-macos](https://github.com/iksnae/punch-the-clock/releases/download/${{ steps.version.outputs.version }}/ptc-macos)
+          - **Windows**: [ptc-windows.exe](https://github.com/iksnae/punch-the-clock/releases/download/${{ steps.version.outputs.version }}/ptc-windows.exe)
           
           ### 🚀 Quick Start
           ```bash
@@ -125,16 +125,16 @@ jobs:
           - MySQL 8.0 or higher
           
           ### 📚 Documentation
-          - [README](https://github.com/${{ github.repository }}#readme)
-          - [API Documentation](https://github.com/${{ github.repository }}/blob/main/docs/API.md)
-          - [Contributing Guide](https://github.com/${{ github.repository }}/blob/main/docs/CONTRIBUTING.md)
-          - [Troubleshooting](https://github.com/${{ github.repository }}/blob/main/docs/TROUBLESHOOTING.md)
+          - [README](https://github.com/iksnae/punch-the-clock#readme)
+          - [API Documentation](https://github.com/iksnae/punch-the-clock/blob/main/docs/API.md)
+          - [Contributing Guide](https://github.com/iksnae/punch-the-clock/blob/main/docs/CONTRIBUTING.md)
+          - [Troubleshooting](https://github.com/iksnae/punch-the-clock/blob/main/docs/TROUBLESHOOTING.md)
           
           ### 🐛 Bug Reports & Feature Requests
-          Please use [GitHub Issues](https://github.com/${{ github.repository }}/issues) for bug reports and feature requests.
+          Please use [GitHub Issues](https://github.com/iksnae/punch-the-clock/issues) for bug reports and feature requests.
           
           ### 📄 License
-          MIT License - see [LICENSE](https://github.com/${{ github.repository }}/blob/main/LICENSE) for details.
+          MIT License - see [LICENSE](https://github.com/iksnae/punch-the-clock/blob/main/LICENSE) for details.
         files: |
           binaries/*
         draft: false

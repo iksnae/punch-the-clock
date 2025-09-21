@@ -170,14 +170,14 @@ jobs:
           ## PTC - Punch the Clock v${{ github.run_number }}
           
           ### Downloads
-          - **Linux**: [ptc-linux](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ptc-linux)
-          - **macOS**: [ptc-macos](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ptc-macos)
-          - **Windows**: [ptc-windows.exe](https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ptc-windows.exe)
+          - **Linux**: [ptc-linux](https://github.com/iksnae/punch-the-clock/releases/download/v${{ github.run_number }}/ptc-linux)
+          - **macOS**: [ptc-macos](https://github.com/iksnae/punch-the-clock/releases/download/v${{ github.run_number }}/ptc-macos)
+          - **Windows**: [ptc-windows.exe](https://github.com/iksnae/punch-the-clock/releases/download/v${{ github.run_number }}/ptc-windows.exe)
           
           ### Installation
           ```bash
           # Download and install binary
-          curl -L https://github.com/${{ github.repository }}/releases/download/v${{ github.run_number }}/ptc-linux -o ptc
+          curl -L https://github.com/iksnae/punch-the-clock/releases/download/v${{ github.run_number }}/ptc-linux -o ptc
           chmod +x ptc
           sudo mv ptc /usr/local/bin/
           

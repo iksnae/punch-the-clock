@@ -5,7 +5,7 @@
 - **Package Name**: `punch-the-clock`
 - **Version**: `0.1.0`
 - **npm URL**: https://www.npmjs.com/package/punch-the-clock
-- **GitHub Repository**: https://github.com/ptc-team/punch-the-clock
+- **GitHub Repository**: https://github.com/iksnae/punch-the-clock
 - **CLI Command**: `ptc`
 
 ## 🚀 Installation
@@ -105,8 +105,8 @@ ptc report velocity
 ### Support Resources
 
 - 📖 **Documentation**: [README.md](README.md)
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/ptc-team/punch-the-clock/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/ptc-team/punch-the-clock/discussions)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/iksnae/punch-the-clock/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/iksnae/punch-the-clock/discussions)
 - 📦 **npm Package**: [punch-the-clock](https://www.npmjs.com/package/punch-the-clock)
 
 ## 🚀 Status: PRODUCTION READY

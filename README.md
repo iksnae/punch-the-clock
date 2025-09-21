@@ -4,7 +4,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/punch-the-clock.svg)](https://www.npmjs.com/package/punch-the-clock)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/punch-the-clock.svg)](https://nodejs.org/)
-[![Build Status](https://github.com/ptc-team/punch-the-clock/workflows/CI/badge.svg)](https://github.com/ptc-team/punch-the-clock/actions)
+[![Build Status](https://github.com/iksnae/punch-the-clock/workflows/CI/badge.svg)](https://github.com/iksnae/punch-the-clock/actions)
 
 A task-based time tracking CLI tool designed for developers and AI coding agents to measure development velocity.
 
@@ -53,12 +53,12 @@ ptc --help
 ### 📦 Alternative Installation Methods
 
 **Via Binary Download:**
-- Download from [GitHub Releases](https://github.com/ptc-team/punch-the-clock/releases)
+- Download from [GitHub Releases](https://github.com/iksnae/punch-the-clock/releases)
 - Extract and add to your PATH
 
 **Via Source:**
 ```bash
-git clone https://github.com/ptc-team/punch-the-clock.git
+git clone https://github.com/iksnae/punch-the-clock.git
 cd punch-the-clock
 npm install
 npm run build
@@ -208,9 +208,9 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- 📖 [Documentation](https://github.com/ptc-team/punch-the-clock#readme)
-- 🐛 [Report Issues](https://github.com/ptc-team/punch-the-clock/issues)
-- 💬 [Discussions](https://github.com/ptc-team/punch-the-clock/discussions)
+- 📖 [Documentation](https://github.com/iksnae/punch-the-clock#readme)
+- 🐛 [Report Issues](https://github.com/iksnae/punch-the-clock/issues)
+- 💬 [Discussions](https://github.com/iksnae/punch-the-clock/discussions)
 
 ## Changelog
 

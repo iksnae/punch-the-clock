@@ -40,12 +40,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ptc-team/punch-the-clock.git"
+    "url": "https://github.com/iksnae/punch-the-clock.git"
   },
   "bugs": {
-    "url": "https://github.com/ptc-team/punch-the-clock/issues"
+    "url": "https://github.com/iksnae/punch-the-clock/issues"
   },
-  "homepage": "https://github.com/ptc-team/punch-the-clock#readme",
+  "homepage": "https://github.com/iksnae/punch-the-clock#readme",
   "engines": {
     "node": ">=16.0.0"
   },
