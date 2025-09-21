@@ -14,6 +14,7 @@ import { CLIError } from '../errors/CLIError';
 import { HelpUtils } from './utils/help';
 import { OutputUtils } from './utils/output';
 import { ConfigUtils } from './utils/config';
+import { TimeCalculations } from '../utils/timeCalculations';
 
 export class PTCApplication {
   private program: Command;
@@ -38,15 +39,17 @@ export class PTCApplication {
     const taskTagRepo = new TaskTagRepository(this.db);
     const timeSessionRepo = new TimeSessionRepository(this.db);
 
+    // Initialize services in dependency order
+    const projectService = new ProjectService(projectRepo);
+    const taskService = new TaskService(taskRepo, taskTagRepo);
+    const timeTrackingService = new TimeTrackingService(timeSessionRepo, taskService);
+    const reportingService = new ReportingService(projectService, taskService, timeTrackingService);
+
     this.services = {
-      project: new ProjectService(projectRepo),
-      task: new TaskService(taskRepo, taskTagRepo),
-      timeTracking: new TimeTrackingService(timeSessionRepo),
-      reporting: new ReportingService(
-        new TimeTrackingService(timeSessionRepo),
-        new TaskService(taskRepo, taskTagRepo),
-        new ProjectService(projectRepo)
-      ),
+      project: projectService,
+      task: taskService,
+      timeTracking: timeTrackingService,
+      reporting: reportingService,
     };
   }
 
@@ -279,12 +282,33 @@ export class PTCApplication {
   }
 
 
-  // Command handlers (placeholder implementations)
+  // Command handlers
   private async handleProjectInit(name: string, options: any): Promise<void> {
     try {
+      // Validate project name
+      const validation = await this.services.project.validateProjectName(name);
+      if (!validation.valid) {
+        throw new CLIError(`Invalid project name: ${validation.errors.join(', ')}`);
+      }
+
+      // Check if project already exists
+      const existingProject = await this.services.project.getProjectByName(name);
+      if (existingProject && !options.force) {
+        throw new CLIError(`Project "${name}" already exists. Use --force to overwrite.`);
+      }
+
+      if (existingProject && options.force) {
+        await this.services.project.deleteProject(existingProject.id);
+        OutputUtils.warning(`Overwrote existing project "${name}"`);
+      }
+
       const project = await this.services.project.createProject(name, options.description);
       OutputUtils.success(`Project "${name}" created successfully`);
       OutputUtils.info(`Project ID: ${project.id}`);
+      
+      // Set as current project
+      ConfigUtils.setCurrentProject(project);
+      OutputUtils.info(`Set "${name}" as current project`);
     } catch (error) {
       throw new CLIError(`Failed to create project: ${error}`);
     }
@@ -293,7 +317,18 @@ export class PTCApplication {
   private async handleProjectList(options: any): Promise<void> {
     try {
       const projects = await this.services.project.listProjects();
+      if (projects.length === 0) {
+        OutputUtils.info('No projects found. Create your first project with: ptc project init <name>');
+        return;
+      }
+      
       OutputUtils.displayProjects(projects, options.format);
+      
+      // Show current project if set
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (currentProject) {
+        OutputUtils.info(`Current project: ${currentProject.name}`);
+      }
     } catch (error) {
       throw new CLIError(`Failed to list projects: ${error}`);
     }
@@ -305,8 +340,14 @@ export class PTCApplication {
       if (!project) {
         throw new CLIError(`Project "${name}" not found`);
       }
+      
       ConfigUtils.setCurrentProject(project);
       OutputUtils.success(`Switched to project "${name}"`);
+      
+      // Show project stats
+      const stats = await this.services.project.getProjectStats(project.id);
+      OutputUtils.info(`Tasks: ${stats.totalTasks} (${stats.completedTasks} completed)`);
+      OutputUtils.info(`Total time: ${TimeCalculations.formatDuration(stats.totalTimeSpent)}`);
     } catch (error) {
       throw new CLIError(`Failed to switch project: ${error}`);
     }
@@ -318,8 +359,23 @@ export class PTCApplication {
       if (!project) {
         throw new CLIError(`Project "${name}" not found`);
       }
+      
       const stats = await this.services.project.getProjectStats(project.id);
       OutputUtils.displayProjectDetails(project, stats);
+      
+      // Show recent tasks
+      const recentTasks = await this.services.task.getRecentTasks(project.id, 5);
+      if (recentTasks.length > 0) {
+        OutputUtils.info('\nRecent Tasks:');
+        OutputUtils.displayTasks(recentTasks, 'table');
+      }
+      
+      // Show active tasks
+      const activeTasks = await this.services.task.getActiveTasks(project.id);
+      if (activeTasks.length > 0) {
+        OutputUtils.info('\nActive Tasks:');
+        OutputUtils.displayTasks(activeTasks, 'table');
+      }
     } catch (error) {
       throw new CLIError(`Failed to show project: ${error}`);
     }
@@ -331,6 +387,17 @@ export class PTCApplication {
       if (!project) {
         throw new CLIError(`Project "${name}" not found`);
       }
+
+      // Check if this is the current project
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (currentProject && currentProject.id === project.id) {
+        OutputUtils.warning(`Deleting current project "${name}"`);
+        ConfigUtils.clearCurrentProject();
+      }
+
+      // Show project stats before deletion
+      const stats = await this.services.project.getProjectStats(project.id);
+      OutputUtils.warning(`Project "${name}" has ${stats.totalTasks} tasks and ${TimeCalculations.formatDuration(stats.totalTimeSpent)} of tracked time`);
 
       if (!options.force) {
         const confirmed = await OutputUtils.confirm(`Are you sure you want to delete project "${name}"?`);
@@ -347,69 +414,639 @@ export class PTCApplication {
     }
   }
 
-  // Placeholder implementations for other command handlers
+  // Task command handlers
   private async handleTaskAdd(title: string, options: any): Promise<void> {
-    OutputUtils.info(`Adding task: ${title}`);
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Generate task number if not provided
+      const taskNumber = options.number || await this.services.task.generateTaskNumber(currentProject.id);
+      
+      // Validate task number
+      const numberValidation = await this.services.task.validateTaskNumber(currentProject.id, taskNumber);
+      if (!numberValidation.valid) {
+        throw new CLIError(`Invalid task number: ${numberValidation.errors.join(', ')}`);
+      }
+
+      const taskData = {
+        number: taskNumber,
+        title,
+        description: options.description,
+        state: options.state || 'pending',
+        sizeEstimate: options.size,
+        timeEstimateHours: options.time,
+        tags: options.tags ? options.tags.split(',').map((tag: string) => tag.trim()) : [],
+      };
+
+      const task = await this.services.task.createTask(currentProject.id, taskData);
+      OutputUtils.success(`Task "${taskNumber}" created successfully`);
+      OutputUtils.info(`Task ID: ${task.id}`);
+      OutputUtils.info(`Title: ${task.title}`);
+      
+      if (task.description) {
+        OutputUtils.info(`Description: ${task.description}`);
+      }
+      
+      if (task.tags && task.tags.length > 0) {
+        OutputUtils.info(`Tags: ${task.tags.join(', ')}`);
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to create task: ${error}`);
+    }
   }
 
   private async handleTaskList(options: any): Promise<void> {
-    OutputUtils.info('Listing tasks...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      const filters: any = {};
+      
+      if (options.state) {
+        filters.state = options.state;
+      }
+      
+      if (options.tags) {
+        filters.tags = options.tags.split(',').map((tag: string) => tag.trim());
+      }
+      
+      if (options.search) {
+        filters.search = options.search;
+      }
+
+      const tasks = await this.services.task.listTasks(currentProject.id, filters);
+      
+      if (tasks.length === 0) {
+        OutputUtils.info('No tasks found. Create your first task with: ptc task add <title>');
+        return;
+      }
+      
+      OutputUtils.displayTasks(tasks, options.format);
+      
+      // Show summary
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter(task => task.state === 'completed').length;
+      const inProgressTasks = tasks.filter(task => task.state === 'in-progress').length;
+      
+      OutputUtils.info(`\nSummary: ${totalTasks} total, ${completedTasks} completed, ${inProgressTasks} in progress`);
+    } catch (error) {
+      throw new CLIError(`Failed to list tasks: ${error}`);
+    }
   }
 
   private async handleTaskShow(id: string): Promise<void> {
-    OutputUtils.info(`Showing task: ${id}`);
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Try to find task by ID or number
+      let task: any = null;
+      
+      if (/^\d+$/.test(id)) {
+        // Numeric ID
+        task = await this.services.task.getTask(parseInt(id));
+      } else {
+        // Task number
+        task = await this.services.task.getTaskByNumber(currentProject.id, id);
+      }
+      
+      if (!task) {
+        throw new CLIError(`Task "${id}" not found`);
+      }
+
+      // Get task stats
+      const stats = await this.services.task.getTaskStats(task.id);
+      OutputUtils.displayTaskDetails(task, stats);
+      
+      // Show recent time sessions
+      const recentSessions = await this.services.timeTracking.listSessions({ taskId: task.id });
+      if (recentSessions.length > 0) {
+        OutputUtils.info('\nRecent Time Sessions:');
+        OutputUtils.displayTimeSessions(recentSessions.slice(0, 5), 'table');
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to show task: ${error}`);
+    }
   }
 
   private async handleTaskUpdate(id: string, options: any): Promise<void> {
-    OutputUtils.info(`Updating task: ${id}`);
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Try to find task by ID or number
+      let task: any = null;
+      
+      if (/^\d+$/.test(id)) {
+        // Numeric ID
+        task = await this.services.task.getTask(parseInt(id));
+      } else {
+        // Task number
+        task = await this.services.task.getTaskByNumber(currentProject.id, id);
+      }
+      
+      if (!task) {
+        throw new CLIError(`Task "${id}" not found`);
+      }
+
+      // Build update data
+      const updateData: any = {};
+      
+      if (options.title) {
+        updateData.title = options.title;
+      }
+      
+      if (options.description !== undefined) {
+        updateData.description = options.description;
+      }
+      
+      if (options.state) {
+        updateData.state = options.state;
+      }
+      
+      if (options.size !== undefined) {
+        updateData.sizeEstimate = options.size;
+      }
+      
+      if (options.time !== undefined) {
+        updateData.timeEstimateHours = options.time;
+      }
+      
+      if (options.tags !== undefined) {
+        updateData.tags = options.tags ? options.tags.split(',').map((tag: string) => tag.trim()) : [];
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new CLIError('No updates specified. Use --title, --description, --state, --size, --time, or --tags');
+      }
+
+      const updatedTask = await this.services.task.updateTask(task.id, updateData);
+      OutputUtils.success(`Task "${task.number}" updated successfully`);
+      
+      // Show updated task details
+      const stats = await this.services.task.getTaskStats(updatedTask.id);
+      OutputUtils.displayTaskDetails(updatedTask, stats);
+    } catch (error) {
+      throw new CLIError(`Failed to update task: ${error}`);
+    }
   }
 
   private async handleTaskDelete(id: string, options: any): Promise<void> {
-    OutputUtils.info(`Deleting task: ${id}`);
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Try to find task by ID or number
+      let task: any = null;
+      
+      if (/^\d+$/.test(id)) {
+        // Numeric ID
+        task = await this.services.task.getTask(parseInt(id));
+      } else {
+        // Task number
+        task = await this.services.task.getTaskByNumber(currentProject.id, id);
+      }
+      
+      if (!task) {
+        throw new CLIError(`Task "${id}" not found`);
+      }
+
+      // Show task details before deletion
+      const stats = await this.services.task.getTaskStats(task.id);
+      OutputUtils.warning(`Task "${task.number}" has ${stats.sessionCount} time sessions and ${TimeCalculations.formatDuration(stats.totalTimeSpent)} of tracked time`);
+
+      if (!options.force) {
+        const confirmed = await OutputUtils.confirm(`Are you sure you want to delete task "${task.number}"?`);
+        if (!confirmed) {
+          OutputUtils.info('Task deletion cancelled');
+          return;
+        }
+      }
+
+      await this.services.task.deleteTask(task.id);
+      OutputUtils.success(`Task "${task.number}" deleted successfully`);
+    } catch (error) {
+      throw new CLIError(`Failed to delete task: ${error}`);
+    }
   }
 
   private async handleTimeStart(taskId: string, options: any): Promise<void> {
-    OutputUtils.info(`Starting time tracking for task: ${taskId}`);
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Try to find task by ID or number
+      let task: any = null;
+      
+      if (/^\d+$/.test(taskId)) {
+        // Numeric ID
+        task = await this.services.task.getTask(parseInt(taskId));
+      } else {
+        // Task number
+        task = await this.services.task.getTaskByNumber(currentProject.id, taskId);
+      }
+      
+      if (!task) {
+        throw new CLIError(`Task "${taskId}" not found`);
+      }
+
+      // Check if there's already an active session
+      const activeSession = await this.services.timeTracking.getActiveSession(task.id);
+      if (activeSession) {
+        throw new CLIError(`Task "${task.number}" already has an active time session (ID: ${activeSession.id}). Stop it first.`);
+      }
+
+      // Start time tracking
+      const session = await this.services.timeTracking.startTracking({
+        taskId: task.id,
+        description: options.description,
+      });
+
+      OutputUtils.success(`Started time tracking for task "${task.number}"`);
+      OutputUtils.info(`Session ID: ${session.id}`);
+      OutputUtils.info(`Task: ${task.title}`);
+      
+      if (session.description) {
+        OutputUtils.info(`Description: ${session.description}`);
+      }
+      
+      OutputUtils.info(`Started at: ${TimeCalculations.getDateString(session.startedAt)} ${TimeCalculations.getTimeOfDay(session.startedAt)}`);
+    } catch (error) {
+      throw new CLIError(`Failed to start time tracking: ${error}`);
+    }
   }
 
   private async handleTimePause(options: any): Promise<void> {
-    OutputUtils.info('Pausing time tracking...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Find active session
+      let activeSession: any = null;
+      
+      if (options.sessionId) {
+        // Pause specific session
+        activeSession = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
+      } else {
+        // Find any active session in current project
+        const tasks = await this.services.task.listTasks(currentProject.id);
+        for (const task of tasks) {
+          const session = await this.services.timeTracking.getActiveSession(task.id);
+          if (session) {
+            activeSession = session;
+            break;
+          }
+        }
+      }
+      
+      if (!activeSession) {
+        throw new CLIError('No active time session found to pause');
+      }
+
+      // Pause the session
+      const pausedSession = await this.services.timeTracking.pauseTracking(activeSession.id);
+      
+      OutputUtils.success(`Paused time session ${activeSession.id}`);
+      OutputUtils.info(`Duration so far: ${TimeCalculations.formatDuration(pausedSession.durationSeconds)}`);
+      OutputUtils.info(`Paused at: ${TimeCalculations.getDateString(pausedSession.pausedAt!)} ${TimeCalculations.getTimeOfDay(pausedSession.pausedAt!)}`);
+    } catch (error) {
+      throw new CLIError(`Failed to pause time tracking: ${error}`);
+    }
   }
 
   private async handleTimeResume(options: any): Promise<void> {
-    OutputUtils.info('Resuming time tracking...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Find paused session
+      let pausedSession: any = null;
+      
+      if (options.sessionId) {
+        // Resume specific session
+        const session = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
+        if (session && session.status === 'paused') {
+          pausedSession = session;
+        }
+      } else {
+        // Find any paused session in current project
+        const tasks = await this.services.task.listTasks(currentProject.id);
+        for (const task of tasks) {
+          const session = await this.services.timeTracking.getActiveSession(task.id);
+          if (session && session.status === 'paused') {
+            pausedSession = session;
+            break;
+          }
+        }
+      }
+      
+      if (!pausedSession) {
+        throw new CLIError('No paused time session found to resume');
+      }
+
+      // Resume the session
+      const resumedSession = await this.services.timeTracking.resumeTracking(pausedSession.id);
+      
+      OutputUtils.success(`Resumed time session ${pausedSession.id}`);
+      OutputUtils.info(`Duration so far: ${TimeCalculations.formatDuration(resumedSession.durationSeconds)}`);
+      OutputUtils.info(`Resumed at: ${TimeCalculations.getDateString(resumedSession.resumedAt!)} ${TimeCalculations.getTimeOfDay(resumedSession.resumedAt!)}`);
+    } catch (error) {
+      throw new CLIError(`Failed to resume time tracking: ${error}`);
+    }
   }
 
   private async handleTimeStop(options: any): Promise<void> {
-    OutputUtils.info('Stopping time tracking...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Find active session
+      let activeSession: any = null;
+      
+      if (options.sessionId) {
+        // Stop specific session
+        activeSession = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
+      } else {
+        // Find any active session in current project
+        const tasks = await this.services.task.listTasks(currentProject.id);
+        for (const task of tasks) {
+          const session = await this.services.timeTracking.getActiveSession(task.id);
+          if (session && (session.status === 'active' || session.status === 'paused')) {
+            activeSession = session;
+            break;
+          }
+        }
+      }
+      
+      if (!activeSession) {
+        throw new CLIError('No active time session found to stop');
+      }
+
+      // Stop the session
+      const stoppedSession = await this.services.timeTracking.stopTracking(activeSession.id);
+      
+      OutputUtils.success(`Stopped time session ${activeSession.id}`);
+      OutputUtils.info(`Total duration: ${TimeCalculations.formatDuration(stoppedSession.durationSeconds)}`);
+      OutputUtils.info(`Stopped at: ${TimeCalculations.getDateString(stoppedSession.endedAt!)} ${TimeCalculations.getTimeOfDay(stoppedSession.endedAt!)}`);
+      
+      // Show task info
+      const task = await this.services.task.getTask(stoppedSession.taskId);
+      if (task) {
+        OutputUtils.info(`Task: ${task.number} - ${task.title}`);
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to stop time tracking: ${error}`);
+    }
   }
 
   private async handleTimeStatus(): Promise<void> {
-    OutputUtils.info('Showing time tracking status...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Find all active sessions in current project
+      const tasks = await this.services.task.listTasks(currentProject.id);
+      const activeSessions: any[] = [];
+      
+      for (const task of tasks) {
+        const session = await this.services.timeTracking.getActiveSession(task.id);
+        if (session && (session.status === 'active' || session.status === 'paused')) {
+          activeSessions.push({ session, task });
+        }
+      }
+      
+      if (activeSessions.length === 0) {
+        OutputUtils.info('No active time sessions');
+        return;
+      }
+      
+      OutputUtils.info(`Active time sessions (${activeSessions.length}):`);
+      
+      for (const { session, task } of activeSessions) {
+        const duration = TimeCalculations.formatDuration(session.durationSeconds);
+        const status = session.status === 'active' ? '🟢 Active' : '🟡 Paused';
+        
+        OutputUtils.info(`\n${status} - Session ${session.id}`);
+        OutputUtils.info(`Task: ${task.number} - ${task.title}`);
+        OutputUtils.info(`Duration: ${duration}`);
+        OutputUtils.info(`Started: ${TimeCalculations.getDateString(session.startedAt)} ${TimeCalculations.getTimeOfDay(session.startedAt)}`);
+        
+        if (session.status === 'paused' && session.pausedAt) {
+          OutputUtils.info(`Paused: ${TimeCalculations.getDateString(session.pausedAt)} ${TimeCalculations.getTimeOfDay(session.pausedAt)}`);
+        }
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to show time status: ${error}`);
+    }
   }
 
   private async handleReportTime(options: any): Promise<void> {
-    OutputUtils.info('Generating time report...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Build filters
+      const filters: any = {
+        projectId: currentProject.id,
+      };
+      
+      if (options.taskId) {
+        filters.taskId = parseInt(options.taskId);
+      }
+      
+      if (options.tags) {
+        filters.tags = options.tags.split(',').map((tag: string) => tag.trim());
+      }
+      
+      if (options.from) {
+        filters.from = new Date(options.from);
+      }
+      
+      if (options.to) {
+        filters.to = new Date(options.to);
+      }
+
+      // Generate time report
+      const report = await this.services.reporting.generateTimeReport(filters);
+      
+      OutputUtils.displayTimeReport(report);
+      
+      if (options.format === 'json') {
+        console.log(JSON.stringify(report, null, 2));
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to generate time report: ${error}`);
+    }
   }
 
   private async handleReportVelocity(options: any): Promise<void> {
-    OutputUtils.info('Generating velocity report...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Build filters
+      const filters: any = {
+        projectId: currentProject.id,
+      };
+      
+      if (options.period) {
+        filters.period = options.period;
+      }
+      
+      if (options.from) {
+        filters.from = new Date(options.from);
+      }
+      
+      if (options.to) {
+        filters.to = new Date(options.to);
+      }
+
+      // Generate velocity report
+      const report = await this.services.reporting.generateVelocityReport(filters);
+      
+      OutputUtils.displayVelocityReport(report);
+      
+      if (options.format === 'json') {
+        console.log(JSON.stringify(report, null, 2));
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to generate velocity report: ${error}`);
+    }
   }
 
   private async handleReportEstimates(options: any): Promise<void> {
-    OutputUtils.info('Generating estimation report...');
+    try {
+      const currentProject = ConfigUtils.getCurrentProject();
+      if (!currentProject) {
+        throw new CLIError('No current project set. Use "ptc project switch <name>" to set a project');
+      }
+
+      // Build filters
+      const filters: any = {
+        projectId: currentProject.id,
+      };
+      
+      if (options.from) {
+        filters.from = new Date(options.from);
+      }
+      
+      if (options.to) {
+        filters.to = new Date(options.to);
+      }
+
+      // Generate estimation report
+      const report = await this.services.reporting.generateEstimationReport(filters);
+      
+      OutputUtils.displayEstimationReport(report);
+      
+      if (options.format === 'json') {
+        console.log(JSON.stringify(report, null, 2));
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to generate estimation report: ${error}`);
+    }
   }
 
   private async handleConfigShow(): Promise<void> {
-    OutputUtils.info('Showing configuration...');
+    try {
+      const config = ConfigUtils.getConfig();
+      const currentProject = ConfigUtils.getCurrentProject();
+      
+      OutputUtils.info('Current Configuration:');
+      OutputUtils.info(`Database Host: ${config.database.host}`);
+      OutputUtils.info(`Database Port: ${config.database.port}`);
+      OutputUtils.info(`Database Name: ${config.database.database}`);
+      OutputUtils.info(`Database User: ${config.database.user}`);
+      OutputUtils.info(`Database SSL: ${config.database.ssl ? 'Enabled' : 'Disabled'}`);
+      OutputUtils.info(`Connection Limit: ${config.database.connectionLimit}`);
+      OutputUtils.info(`Acquire Timeout: ${config.database.acquireTimeout}ms`);
+      OutputUtils.info(`Query Timeout: ${config.database.timeout}ms`);
+      
+      if (currentProject) {
+        OutputUtils.info(`\nCurrent Project: ${currentProject.name} (ID: ${currentProject.id})`);
+      } else {
+        OutputUtils.info('\nNo current project set');
+      }
+    } catch (error) {
+      throw new CLIError(`Failed to show configuration: ${error}`);
+    }
   }
 
   private async handleConfigSet(key: string, value: string): Promise<void> {
-    OutputUtils.info(`Setting ${key} = ${value}`);
+    try {
+      const validKeys = [
+        'database.host',
+        'database.port',
+        'database.database',
+        'database.user',
+        'database.password',
+        'database.ssl',
+        'database.connectionLimit',
+        'database.acquireTimeout',
+        'database.timeout',
+      ];
+      
+      if (!validKeys.includes(key)) {
+        throw new CLIError(`Invalid configuration key: ${key}. Valid keys: ${validKeys.join(', ')}`);
+      }
+      
+      // Parse value based on key
+      let parsedValue: any = value;
+      
+      if (key === 'database.port' || key === 'database.connectionLimit' || key === 'database.acquireTimeout' || key === 'database.timeout') {
+        parsedValue = parseInt(value);
+        if (isNaN(parsedValue)) {
+          throw new CLIError(`Invalid value for ${key}: must be a number`);
+        }
+      } else if (key === 'database.ssl') {
+        parsedValue = value.toLowerCase() === 'true';
+      }
+      
+      // Update configuration
+      ConfigUtils.setConfigValue(key, parsedValue);
+      OutputUtils.success(`Set ${key} = ${parsedValue}`);
+      
+      // Show updated configuration
+      const config = ConfigUtils.getConfig();
+      OutputUtils.info(`Updated configuration saved to ${ConfigUtils.getConfigPath()}`);
+    } catch (error) {
+      throw new CLIError(`Failed to set configuration: ${error}`);
+    }
   }
 
   private async handleConfigReset(): Promise<void> {
-    OutputUtils.info('Resetting configuration...');
+    try {
+      ConfigUtils.resetConfig();
+      OutputUtils.success('Configuration reset to defaults');
+      OutputUtils.info('Configuration file has been reset to default values');
+    } catch (error) {
+      throw new CLIError(`Failed to reset configuration: ${error}`);
+    }
   }
 
   public async run(): Promise<void> {
