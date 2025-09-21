@@ -1,14 +1,27 @@
 # PTC - Punch the Clock
 
 [![npm version](https://badge.fury.io/js/punch-the-clock.svg)](https://badge.fury.io/js/punch-the-clock)
+[![npm downloads](https://img.shields.io/npm/dm/punch-the-clock.svg)](https://www.npmjs.com/package/punch-the-clock)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js Version](https://img.shields.io/node/v/punch-the-clock.svg)](https://nodejs.org/)
+[![Build Status](https://github.com/ptc-team/punch-the-clock/workflows/CI/badge.svg)](https://github.com/ptc-team/punch-the-clock/actions)
 
 A task-based time tracking CLI tool designed for developers and AI coding agents to measure development velocity.
 
 ## Overview
 
 PTC (Punch the Clock) allows you to create projects, attach tasks with numbers, titles, descriptions, states, and tags, then track time using simple start/pause/resume/stop commands. All time calculations are based on timestamps - no actual timers required. Perfect for measuring development velocity and estimation accuracy.
+
+## 📦 Available on npm
+
+PTC is now available as a global npm package! Install it once and use the `ptc` command from anywhere:
+
+```bash
+npm install -g punch-the-clock
+ptc --help
+```
+
+[![npm package](https://img.shields.io/badge/npm-punch--the--clock-blue.svg)](https://www.npmjs.com/package/punch-the-clock)
 
 ## Features
 
@@ -25,13 +38,36 @@ PTC (Punch the Clock) allows you to create projects, attach tasks with numbers, 
 
 ## Installation
 
+### 🚀 Quick Install (Recommended)
+
 ```bash
 npm install -g punch-the-clock
 ```
 
+After installation, you can use the `ptc` command anywhere:
+
+```bash
+ptc --help
+```
+
+### 📦 Alternative Installation Methods
+
+**Via Binary Download:**
+- Download from [GitHub Releases](https://github.com/ptc-team/punch-the-clock/releases)
+- Extract and add to your PATH
+
+**Via Source:**
+```bash
+git clone https://github.com/ptc-team/punch-the-clock.git
+cd punch-the-clock
+npm install
+npm run build
+npm link
+```
+
 ### Prerequisites
 
-- Node.js 16.0.0 or higher
+- Node.js 16.0.0 or higher (for npm installation)
 - MySQL 8.0 or higher (local or remote)
 
 ## Quick Start

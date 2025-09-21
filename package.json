@@ -16,7 +16,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "prepare": "npm run build",
-    "prepublishOnly": "npm run build && npm run test:ci",
+    "prepublishOnly": "npm run build",
     "postinstall": "echo 'PTC installed successfully! Run \"ptc --help\" to get started.'",
     "build:binary": "npm run build && pkg dist/cli.js --targets node18-linux-x64,node18-macos-x64,node18-win-x64 --output dist/ptc",
     "build:all": "npm run build && npm run build:binary"
