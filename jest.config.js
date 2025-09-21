@@ -15,7 +15,14 @@ module.exports = {
     '!src/cli.ts',
   ],
   coverageDirectory: 'coverage',
-  coverageReporters: ['text', 'lcov', 'html'],
+  coverageReporters: [
+    'text',
+    'text-summary',
+    'lcov',
+    'html',
+    'json',
+    'json-summary'
+  ],
   coverageThreshold: {
     global: {
       branches: 80,
@@ -26,4 +33,14 @@ module.exports = {
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testTimeout: 10000,
+  verbose: true,
+  // CI-specific configuration
+  ...(process.env.CI && {
+    collectCoverage: true,
+    coverageReporters: ['text', 'lcov', 'json-summary'],
+    reporters: [
+      'default',
+      ['jest-junit', { outputDirectory: 'coverage', outputName: 'junit.xml' }]
+    ]
+  })
 };
