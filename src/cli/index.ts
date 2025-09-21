@@ -42,8 +42,8 @@ export class PTCApplication {
     // Initialize services in dependency order
     const projectService = new ProjectService(projectRepo);
     const taskService = new TaskService(taskRepo, taskTagRepo);
-    const timeTrackingService = new TimeTrackingService(timeSessionRepo, taskService);
-    const reportingService = new ReportingService(projectService, taskService, timeTrackingService);
+    const timeTrackingService = new TimeTrackingService(timeSessionRepo);
+    const reportingService = new ReportingService(timeTrackingService, taskService, projectService);
 
     this.services = {
       project: projectService,
@@ -392,7 +392,7 @@ export class PTCApplication {
       const currentProject = ConfigUtils.getCurrentProject();
       if (currentProject && currentProject.id === project.id) {
         OutputUtils.warning(`Deleting current project "${name}"`);
-        ConfigUtils.clearCurrentProject();
+        ConfigUtils.setCurrentProject(undefined as any);
       }
 
       // Show project stats before deletion
@@ -432,6 +432,7 @@ export class PTCApplication {
       }
 
       const taskData = {
+        projectId: currentProject.id,
         number: taskNumber,
         title,
         description: options.description,
@@ -664,24 +665,18 @@ export class PTCApplication {
       }
 
       // Check if there's already an active session
-      const activeSession = await this.services.timeTracking.getActiveSession(task.id);
+      const activeSession = await this.services.timeTracking.getActiveSession();
       if (activeSession) {
         throw new CLIError(`Task "${task.number}" already has an active time session (ID: ${activeSession.id}). Stop it first.`);
       }
 
       // Start time tracking
-      const session = await this.services.timeTracking.startTracking({
-        taskId: task.id,
-        description: options.description,
-      });
+      const session = await this.services.timeTracking.startTracking(task.id);
 
       OutputUtils.success(`Started time tracking for task "${task.number}"`);
       OutputUtils.info(`Session ID: ${session.id}`);
       OutputUtils.info(`Task: ${task.title}`);
       
-      if (session.description) {
-        OutputUtils.info(`Description: ${session.description}`);
-      }
       
       OutputUtils.info(`Started at: ${TimeCalculations.getDateString(session.startedAt)} ${TimeCalculations.getTimeOfDay(session.startedAt)}`);
     } catch (error) {
@@ -701,12 +696,12 @@ export class PTCApplication {
       
       if (options.sessionId) {
         // Pause specific session
-        activeSession = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
+        activeSession = await this.services.timeTracking.getActiveSession();
       } else {
         // Find any active session in current project
         const tasks = await this.services.task.listTasks(currentProject.id);
         for (const task of tasks) {
-          const session = await this.services.timeTracking.getActiveSession(task.id);
+          const session = await this.services.timeTracking.getActiveSession();
           if (session) {
             activeSession = session;
             break;
@@ -741,16 +736,18 @@ export class PTCApplication {
       
       if (options.sessionId) {
         // Resume specific session
-        const session = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
-        if (session && session.status === 'paused') {
+        const session = await this.services.timeTracking.getActiveSession();
+        if (session && TimeCalculations.getSessionStatus(session) === 'paused') {
           pausedSession = session;
         }
       } else {
         // Find any paused session in current project
+        const pausedSessions = await this.services.timeTracking.getPausedSessions();
         const tasks = await this.services.task.listTasks(currentProject.id);
-        for (const task of tasks) {
-          const session = await this.services.timeTracking.getActiveSession(task.id);
-          if (session && session.status === 'paused') {
+        const taskIds = tasks.map(task => task.id);
+        
+        for (const session of pausedSessions) {
+          if (taskIds.includes(session.taskId)) {
             pausedSession = session;
             break;
           }
@@ -784,15 +781,24 @@ export class PTCApplication {
       
       if (options.sessionId) {
         // Stop specific session
-        activeSession = await this.services.timeTracking.getActiveSession(parseInt(options.sessionId));
+        activeSession = await this.services.timeTracking.getActiveSession();
       } else {
-        // Find any active session in current project
+        // Find any active or paused session in current project
         const tasks = await this.services.task.listTasks(currentProject.id);
-        for (const task of tasks) {
-          const session = await this.services.timeTracking.getActiveSession(task.id);
-          if (session && (session.status === 'active' || session.status === 'paused')) {
-            activeSession = session;
-            break;
+        const taskIds = tasks.map(task => task.id);
+        
+        // Check for active sessions
+        const activeSessionCheck = await this.services.timeTracking.getActiveSession();
+        if (activeSessionCheck && taskIds.includes(activeSessionCheck.taskId)) {
+          activeSession = activeSessionCheck;
+        } else {
+          // Check for paused sessions
+          const pausedSessions = await this.services.timeTracking.getPausedSessions();
+          for (const session of pausedSessions) {
+            if (taskIds.includes(session.taskId)) {
+              activeSession = session;
+              break;
+            }
           }
         }
       }
@@ -806,7 +812,7 @@ export class PTCApplication {
       
       OutputUtils.success(`Stopped time session ${activeSession.id}`);
       OutputUtils.info(`Total duration: ${TimeCalculations.formatDuration(stoppedSession.durationSeconds)}`);
-      OutputUtils.info(`Stopped at: ${TimeCalculations.getDateString(stoppedSession.endedAt!)} ${TimeCalculations.getTimeOfDay(stoppedSession.endedAt!)}`);
+      OutputUtils.info(`Stopped at: ${TimeCalculations.getDateString(stoppedSession.stoppedAt!)} ${TimeCalculations.getTimeOfDay(stoppedSession.stoppedAt!)}`);
       
       // Show task info
       const task = await this.services.task.getTask(stoppedSession.taskId);
@@ -829,9 +835,20 @@ export class PTCApplication {
       const tasks = await this.services.task.listTasks(currentProject.id);
       const activeSessions: any[] = [];
       
-      for (const task of tasks) {
-        const session = await this.services.timeTracking.getActiveSession(task.id);
-        if (session && (session.status === 'active' || session.status === 'paused')) {
+      // Check for active sessions
+      const activeSession = await this.services.timeTracking.getActiveSession();
+      if (activeSession) {
+        const task = await this.services.task.getTask(activeSession.taskId);
+        if (task && task.projectId === currentProject.id) {
+          activeSessions.push({ session: activeSession, task });
+        }
+      }
+      
+      // Check for paused sessions
+      const pausedSessions = await this.services.timeTracking.getPausedSessions();
+      for (const session of pausedSessions) {
+        const task = await this.services.task.getTask(session.taskId);
+        if (task && task.projectId === currentProject.id) {
           activeSessions.push({ session, task });
         }
       }
@@ -845,14 +862,14 @@ export class PTCApplication {
       
       for (const { session, task } of activeSessions) {
         const duration = TimeCalculations.formatDuration(session.durationSeconds);
-        const status = session.status === 'active' ? '🟢 Active' : '🟡 Paused';
+        const status = TimeCalculations.getSessionStatus(session) === 'active' ? '🟢 Active' : '🟡 Paused';
         
         OutputUtils.info(`\n${status} - Session ${session.id}`);
         OutputUtils.info(`Task: ${task.number} - ${task.title}`);
         OutputUtils.info(`Duration: ${duration}`);
         OutputUtils.info(`Started: ${TimeCalculations.getDateString(session.startedAt)} ${TimeCalculations.getTimeOfDay(session.startedAt)}`);
         
-        if (session.status === 'paused' && session.pausedAt) {
+        if (TimeCalculations.getSessionStatus(session) === 'paused' && session.pausedAt) {
           OutputUtils.info(`Paused: ${TimeCalculations.getDateString(session.pausedAt)} ${TimeCalculations.getTimeOfDay(session.pausedAt)}`);
         }
       }
@@ -890,7 +907,7 @@ export class PTCApplication {
       }
 
       // Generate time report
-      const report = await this.services.reporting.generateTimeReport(filters);
+      const report = await this.services.reporting.getTimeReport(filters);
       
       OutputUtils.displayTimeReport(report);
       
@@ -927,7 +944,7 @@ export class PTCApplication {
       }
 
       // Generate velocity report
-      const report = await this.services.reporting.generateVelocityReport(filters);
+      const report = await this.services.reporting.getVelocityReport(filters);
       
       OutputUtils.displayVelocityReport(report);
       
@@ -960,7 +977,7 @@ export class PTCApplication {
       }
 
       // Generate estimation report
-      const report = await this.services.reporting.generateEstimationReport(filters);
+      const report = await this.services.reporting.getEstimationReport(filters);
       
       OutputUtils.displayEstimationReport(report);
       
@@ -978,14 +995,18 @@ export class PTCApplication {
       const currentProject = ConfigUtils.getCurrentProject();
       
       OutputUtils.info('Current Configuration:');
-      OutputUtils.info(`Database Host: ${config.database.host}`);
-      OutputUtils.info(`Database Port: ${config.database.port}`);
-      OutputUtils.info(`Database Name: ${config.database.database}`);
-      OutputUtils.info(`Database User: ${config.database.user}`);
-      OutputUtils.info(`Database SSL: ${config.database.ssl ? 'Enabled' : 'Disabled'}`);
-      OutputUtils.info(`Connection Limit: ${config.database.connectionLimit}`);
-      OutputUtils.info(`Acquire Timeout: ${config.database.acquireTimeout}ms`);
-      OutputUtils.info(`Query Timeout: ${config.database.timeout}ms`);
+      if (config.database) {
+        OutputUtils.info(`Database Host: ${config.database.host}`);
+        OutputUtils.info(`Database Port: ${config.database.port}`);
+        OutputUtils.info(`Database Name: ${config.database.database}`);
+        OutputUtils.info(`Database User: ${config.database.user}`);
+        OutputUtils.info(`Database SSL: ${config.database.ssl ? 'Enabled' : 'Disabled'}`);
+        OutputUtils.info(`Connection Limit: ${config.database.connectionLimit || 'Default'}`);
+        OutputUtils.info(`Acquire Timeout: ${config.database.acquireTimeout || 'Default'}ms`);
+        OutputUtils.info(`Query Timeout: ${config.database.timeout || 'Default'}ms`);
+      } else {
+        OutputUtils.info('Database configuration not set');
+      }
       
       if (currentProject) {
         OutputUtils.info(`\nCurrent Project: ${currentProject.name} (ID: ${currentProject.id})`);

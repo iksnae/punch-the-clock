@@ -18,6 +18,10 @@ export interface PTCConfig {
     user: string;
     password: string;
     database: string;
+    ssl?: boolean;
+    connectionLimit?: number;
+    acquireTimeout?: number;
+    timeout?: number;
   };
   timezone?: string;
   dateFormat?: string;

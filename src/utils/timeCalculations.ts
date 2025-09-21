@@ -1,4 +1,4 @@
-import { TimeSession } from '../types/TimeSession';
+import { TimeSession, TimeSessionState } from '../types/TimeSession';
 
 export class TimeCalculations {
   public static calculateDuration(startTime: Date, endTime: Date): number {
@@ -196,5 +196,15 @@ export class TimeCalculations {
     }
     
     return nextDay;
+  }
+
+  public static getSessionStatus(session: TimeSession): TimeSessionState {
+    if (session.stoppedAt) {
+      return 'stopped';
+    } else if (session.pausedAt && !session.resumedAt) {
+      return 'paused';
+    } else {
+      return 'active';
+    }
   }
 }
